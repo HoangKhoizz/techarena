@@ -3508,3 +3508,4 @@ C:\đồ án\ban link kien PC\ban link kien PC\ban link kien PC\ban link kien PC
 C:\đồ án\ban link kien PC\ban link kien PC\ban link kien PC\ban link kien PC\obj\Debug\net8.0\ban link kien PC.pdb
 C:\đồ án\ban link kien PC\ban link kien PC\ban link kien PC\ban link kien PC\obj\Debug\net8.0\ban link kien PC.genruntimeconfig.cache
 C:\đồ án\ban link kien PC\ban link kien PC\ban link kien PC\ban link kien PC\obj\Debug\net8.0\ref\ban link kien PC.dll
+C:\đồ án\ban link kien PC\ban link kien PC\ban link kien PC\ban link kien PC\obj\Debug\net8.0\ban link kien PC.sourcelink.json

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ban link kien PC")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+422a9cb41c82dc6cac3382a2d9d9c1c57c99228f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+63a5e9222743da0bf4de5c6632f3945d90cf9fd9")]
 [assembly: System.Reflection.AssemblyProductAttribute("ban link kien PC")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ban link kien PC")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
