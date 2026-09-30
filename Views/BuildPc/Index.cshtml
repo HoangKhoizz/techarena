@@ -1,0 +1,641 @@
+@model ban_link_kien_PC.Controllers.BuildPcViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Build PC";
+    var jsonOpts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    var componentsJson = JsonSerializer.Serialize(Model.Components, jsonOpts);
+    var categoriesJson = JsonSerializer.Serialize(Model.Categories, jsonOpts);
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+
+<div class="ta-container py-4">
+<div class="page-shell buildpc-shell">
+    <div class="page-head mb-3">
+        <p class="mb-2 small">
+            <a asp-controller="Home" asp-action="Index">← Trang chủ</a>
+            <span class="text-muted mx-2">|</span>
+            <a asp-controller="Cart" asp-action="Index">Giỏ hàng</a>
+        </p>
+        <h2 class="page-title mb-1">Build PC theo nhu cầu</h2>
+        <p class="text-muted mb-0">Chọn linh kiện hoặc bấm preset — hệ thống ghép bộ tương thích (socket, DDR, nguồn, RAM kit) và chỉ cho thêm giỏ khi cấu hình hợp lệ.</p>
+    </div>
+
+    <div class="build-pattern-toolbar mb-3">
+        <div class="build-presets-wrap">
+            <div class="build-presets">
+                <span class="small text-muted">Preset (Factory Method):</span>
+                @foreach (var p in Model.Presets)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-preset" data-preset="@p.Code">@p.DisplayName</button>
+                }
+            </div>
+            <div class="build-presets mt-2">
+                <span class="small text-muted">Hệ sinh thái (Abstract Factory):</span>
+                @foreach (var eco in Model.Ecosystems)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-dark btn-ecosystem" data-ecosystem="@eco.Code">@eco.DisplayName</button>
+                }
+            </div>
+        </div>
+        <div class="build-history">
+            <button type="button" id="btn-undo" class="btn btn-sm btn-outline-secondary" disabled>Undo</button>
+            <button type="button" id="btn-redo" class="btn btn-sm btn-outline-secondary" disabled>Redo</button>
+        </div>
+    </div>
+
+    <div id="build-picker-section" class="build-picker-modal d-none" aria-hidden="true">
+        <div class="build-picker-backdrop" data-close-picker="true"></div>
+        <div class="build-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="build-picker-title">
+            <div class="build-picker-head">
+                <strong id="build-picker-title">CHỌN LINH KIỆN</strong>
+                <button type="button" id="btn-close-picker" class="build-picker-close" aria-label="Đóng">✕</button>
+            </div>
+            <div class="build-catalog-layout">
+                <aside class="build-category-panel">
+                    <h6 class="mb-2">Loại linh kiện</h6>
+                    <div id="build-category-list" class="build-category-list"></div>
+                </aside>
+
+                <section class="build-items-panel">
+                    <div class="build-items-toolbar">
+                        <input id="build-search" class="form-control form-control-sm" placeholder="Bạn cần tìm linh kiện gì?" />
+                        <select id="build-sort" class="form-select form-select-sm">
+                            <option value="priceAsc">Giá thấp đến cao</option>
+                            <option value="priceDesc">Giá cao đến thấp</option>
+                            <option value="nameAsc">Tên A-Z</option>
+                        </select>
+                    </div>
+                    <div id="build-items-grid" class="build-items-grid"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div class="card page-card mb-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:5%">#</th>
+                            <th style="width:18%">Loại linh kiện</th>
+                            <th>Linh kiện đã chọn</th>
+                            <th style="width:12%" class="text-end">SL</th>
+                            <th style="width:14%" class="text-end">Tạm tính</th>
+                            <th style="width:10%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="build-selected-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="build-toolbar mb-3">
+        <div>
+            <strong>Chi phí dự tính:</strong>
+            <span id="build-total" class="text-danger fw-bold fs-5">0 đ</span>
+            <div id="build-service-summary" class="small text-muted mt-1"></div>
+        </div>
+        <div class="build-toolbar-actions">
+            <button id="btn-refresh" class="btn btn-outline-secondary">Làm mới</button>
+            <button id="btn-export-excel" class="btn btn-sm btn-outline-primary">Xuất Excel (.xlsx)</button>
+            <label class="form-check form-check-inline mb-0">
+                <input id="service-overclock" class="form-check-input" type="checkbox" />
+                <span class="form-check-label">Ép xung (+250k)</span>
+            </label>
+            <label class="form-check form-check-inline mb-0">
+                <input id="service-warranty" class="form-check-input" type="checkbox" />
+                <span class="form-check-label">BH mở rộng (+350k)</span>
+            </label>
+            @if (isAuthenticated)
+            {
+                <div class="d-flex gap-1">
+                    <input id="build-name" class="form-control form-control-sm" style="min-width:220px" placeholder="Tên cấu hình để lưu (Builder)" />
+                    <button id="btn-save-config" class="btn btn-sm btn-outline-primary">Lưu cấu hình</button>
+                </div>
+                <a class="btn btn-sm btn-outline-dark" asp-action="SavedConfigurations">Xem cấu hình đã lưu</a>
+            }
+            <button id="btn-add-to-cart" class="btn btn-primary">Thêm vào giỏ hàng</button>
+        </div>
+    </div>
+
+    <div id="compatibility-messages" class="build-issues"></div>
+</div>
+
+<div id="build-cart-popup" class="build-cart-popup d-none" aria-hidden="true">
+    <div class="build-cart-popup-backdrop" data-popup-close="true"></div>
+    <div class="build-cart-popup-dialog" role="dialog" aria-modal="true" aria-labelledby="build-cart-popup-title">
+        <div class="build-cart-popup-head">
+            <strong id="build-cart-popup-title">Thông báo</strong>
+            <button type="button" class="build-cart-popup-close" id="btn-popup-close-x" aria-label="Đóng">✕</button>
+        </div>
+        <div class="build-cart-popup-body">
+            <p id="build-cart-popup-message" class="mb-0"></p>
+        </div>
+        <div class="build-cart-popup-actions">
+            <button type="button" class="btn btn-primary" id="btn-popup-ok">OK</button>
+        </div>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+<script>
+    const buildComponents = @Html.Raw(componentsJson);
+    const buildCategories = @Html.Raw(categoriesJson);
+    const isAuthenticated = @isAuthenticated.ToString().ToLowerInvariant();
+    let activeCategory = buildCategories[0] || 'CPU';
+    let selectedMap = {};
+    let reloadOnPopupClose = false;
+
+    const endpoint = {
+        preview: '@Url.Action("Preview", "BuildPc")',
+        addToCart: '@Url.Action("AddToCart", "BuildPc")',
+        applyPreset: '@Url.Action("ApplyPreset", "BuildPc")',
+        applyEcosystem: '@Url.Action("ApplyEcosystem", "BuildPc")',
+        applyCommand: '@Url.Action("ApplyCommand", "BuildPc")',
+        updateServices: '@Url.Action("UpdateServices", "BuildPc")',
+        undo: '@Url.Action("Undo", "BuildPc")',
+        redo: '@Url.Action("Redo", "BuildPc")',
+        saveConfiguration: '@Url.Action("SaveConfiguration", "BuildPc")'
+    };
+
+    function gatherSelectionFromState() {
+        const getId = (code) => selectedMap[code]?.componentId ?? null;
+        const ramId = getId('RAM');
+        const items = Object.keys(selectedMap || {})
+            .map((cat) => {
+                const x = selectedMap[cat];
+                if (!x?.componentId) return null;
+                return {
+                    componentId: Number(x.componentId),
+                    qty: Number(x.qty || 1)
+                };
+            })
+            .filter(x => x && x.componentId > 0 && x.qty > 0);
+        const payload = {
+            cpuId: getId('CPU'),
+            mainboardId: getId('MAINBOARD'),
+            ramId: ramId,
+            ramQty: ramId ? (selectedMap['RAM']?.qty ?? 1) : 0,
+            gpuId: getId('GPU'),
+            psuId: getId('PSU'),
+            items: items,
+            buildName: (document.getElementById('build-name')?.value || '').trim()
+        };
+        return payload;
+    }
+
+    const currency = (v) => Number(v || 0).toLocaleString('vi-VN') + ' đ';
+
+    function getComponentById(id) {
+        return buildComponents.find(x => x.componentId === id) || null;
+    }
+
+    function openCartPopup(message, shouldReload = false) {
+        const popup = document.getElementById('build-cart-popup');
+        const msg = document.getElementById('build-cart-popup-message');
+        if (!popup || !msg) return;
+        reloadOnPopupClose = !!shouldReload;
+        msg.innerText = message || 'Đã xử lý xong.';
+        popup.classList.remove('d-none');
+        popup.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('build-cart-popup-open');
+    }
+
+    function closeCartPopup() {
+        const popup = document.getElementById('build-cart-popup');
+        if (!popup) return;
+        popup.classList.add('d-none');
+        popup.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('build-cart-popup-open');
+        if (reloadOnPopupClose) {
+            reloadOnPopupClose = false;
+            window.location.reload();
+        }
+    }
+
+    function getSelectedRows() {
+        return buildCategories.map(cat => {
+            const pick = selectedMap[cat] || null;
+            const comp = pick ? getComponentById(pick.componentId) : null;
+            if (!comp) return null;
+            const qty = pick?.qty || 1;
+            return {
+                category: cat,
+                sku: comp.sku || '',
+                name: comp.name,
+                qty: qty,
+                unitPrice: comp.priceVnd,
+                lineTotal: comp.priceVnd * qty
+            };
+        }).filter(x => x !== null);
+    }
+
+    function loadSheetJsAsync() {
+        if (window.XLSX) return Promise.resolve(window.XLSX);
+        return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+            s.onload = () => resolve(window.XLSX);
+            s.onerror = () => reject(new Error('Không thể tải thư viện xuất Excel.'));
+            document.head.appendChild(s);
+        });
+    }
+
+    async function exportBuildAsExcel() {
+        const rows = getSelectedRows();
+        if (!rows.length) {
+            alert('Chưa có linh kiện để xuất file.');
+            return;
+        }
+        try {
+            const XLSX = await loadSheetJsAsync();
+            const dataRows = rows.map(r => ({
+                'Loại linh kiện': r.category,
+                SKU: r.sku,
+                'Tên linh kiện': r.name,
+                'Số lượng': r.qty,
+                'Đơn giá (VND)': r.unitPrice,
+                'Thành tiền (VND)': r.lineTotal
+            }));
+            dataRows.push({
+                'Loại linh kiện': '',
+                SKU: '',
+                'Tên linh kiện': 'Tổng cộng',
+                'Số lượng': '',
+                'Đơn giá (VND)': '',
+                'Thành tiền (VND)': rows.reduce((sum, r) => sum + r.lineTotal, 0)
+            });
+            const ws = XLSX.utils.json_to_sheet(dataRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'BuildPC');
+            XLSX.writeFile(wb, `techarena-build-${new Date().toISOString().slice(0, 10)}.xlsx`);
+        } catch (err) {
+            alert('Không thể xuất file Excel lúc này. Vui lòng thử lại.');
+        }
+    }
+
+    function renderCategoryList() {
+        const root = document.getElementById('build-category-list');
+        root.innerHTML = '';
+        buildCategories.forEach(cat => {
+            const count = buildComponents.filter(x => x.categoryCode === cat).length;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'build-category-btn' + (cat === activeCategory ? ' active' : '');
+            btn.innerHTML = `<span>${cat}</span><small>${count}</small>`;
+            btn.addEventListener('click', () => {
+                activeCategory = cat;
+                renderCategoryList();
+                renderItemsGrid();
+                syncPickerTitle();
+            });
+            root.appendChild(btn);
+        });
+    }
+
+    function syncPickerTitle() {
+        const title = document.getElementById('build-picker-title');
+        if (title) title.innerText = `Chọn linh kiện cho: ${activeCategory}`;
+    }
+
+    function openPicker(categoryCode) {
+        const section = document.getElementById('build-picker-section');
+        if (!section) return;
+        activeCategory = categoryCode || activeCategory;
+        section.classList.remove('d-none');
+        section.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('build-picker-open');
+        syncPickerTitle();
+        renderCategoryList();
+        renderItemsGrid();
+    }
+
+    function closePicker() {
+        const section = document.getElementById('build-picker-section');
+        if (!section) return;
+        section.classList.add('d-none');
+        section.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('build-picker-open');
+    }
+
+    function renderItemsGrid() {
+        const keyword = (document.getElementById('build-search')?.value || '').trim().toLowerCase();
+        const sort = document.getElementById('build-sort')?.value || 'priceAsc';
+        const root = document.getElementById('build-items-grid');
+
+        let items = buildComponents.filter(x => x.categoryCode === activeCategory);
+        if (keyword) {
+            items = items.filter(x =>
+                x.name.toLowerCase().includes(keyword) ||
+                (x.brand || '').toLowerCase().includes(keyword) ||
+                (x.sku || '').toLowerCase().includes(keyword));
+        }
+
+        items = items.sort((a, b) => {
+            if (sort === 'priceDesc') return b.priceVnd - a.priceVnd;
+            if (sort === 'nameAsc') return a.name.localeCompare(b.name, 'vi');
+            return a.priceVnd - b.priceVnd;
+        });
+
+        root.innerHTML = '';
+        if (items.length === 0) {
+            root.innerHTML = '<div class="text-muted small">Không có linh kiện phù hợp trong nhóm này.</div>';
+            return;
+        }
+
+        items.forEach(item => {
+            const card = document.createElement('article');
+            card.className = 'build-item-card';
+            const outOfStock = item.stockQty <= 0;
+            card.innerHTML = `
+                <div class="build-item-thumb"><img src="${item.imageUrl}" alt="${item.name}"></div>
+                <div class="build-item-body">
+                    <div class="build-item-title">${item.name}</div>
+                    <div class="small text-muted mb-1">${item.sku || ''} • ${(item.brand || 'N/A')}</div>
+                    <div class="build-item-meta">
+                        <strong class="text-danger">${currency(item.priceVnd)}</strong>
+                        <span class="small">Kho: ${item.stockQty}</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" ${outOfStock ? 'disabled' : ''}>
+                    ${outOfStock ? 'Hết hàng' : 'Thêm vào cấu hình'}
+                </button>`;
+
+            const btn = card.querySelector('button');
+            btn?.addEventListener('click', () => {
+                const qty = 1;
+                applyCommand(activeCategory, item.componentId, qty);
+            });
+
+            root.appendChild(card);
+        });
+    }
+
+    function renderSelectedTable() {
+        const tbody = document.getElementById('build-selected-body');
+        tbody.innerHTML = '';
+
+        buildCategories.forEach((cat, idx) => {
+            const pick = selectedMap[cat] || null;
+            const comp = pick ? getComponentById(pick.componentId) : null;
+            const qty = pick?.qty || 0;
+            const lineTotal = comp ? comp.priceVnd * qty : 0;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${idx + 1}</td>
+                <td class="fw-semibold">${cat}</td>
+                <td>${comp ? comp.name : '<span class="text-muted">Chưa chọn linh kiện</span>'}</td>
+                <td class="text-end">${qty || '-'}</td>
+                <td class="text-end">${comp ? currency(lineTotal) : '-'}</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-primary mb-1" data-pick="${cat}">Chọn linh kiện</button>
+                    ${comp ? `<button type="button" class="btn btn-sm btn-outline-danger" data-remove="${cat}">Bỏ chọn</button>` : ''}
+                </td>`;
+            tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll('button[data-pick]').forEach(btn => {
+            btn.addEventListener('click', () => openPicker(btn.dataset.pick));
+        });
+        tbody.querySelectorAll('button[data-remove]').forEach(btn => {
+            btn.addEventListener('click', () => applyCommand(btn.dataset.remove, null, 1));
+        });
+    }
+
+    function renderSnapshot(data) {
+        if (!data) return;
+        const totalFinal = data.totalWithServiceVnd ?? data.totalPriceVnd ?? 0;
+        document.getElementById('build-total').innerText = currency(totalFinal);
+        document.getElementById('btn-undo').disabled = !data.canUndo;
+        document.getElementById('btn-redo').disabled = !data.canRedo;
+        const overclock = document.getElementById('service-overclock');
+        const warranty = document.getElementById('service-warranty');
+        if (overclock) overclock.checked = !!data.includeOverclock;
+        if (warranty) warranty.checked = !!data.includeExtendedWarranty;
+        const summary = document.getElementById('build-service-summary');
+        if (summary) {
+            const addOn = data.serviceAddOnVnd || 0;
+            summary.innerText = addOn > 0
+                ? `Decorator: ${data.serviceName || 'Dịch vụ cộng thêm'} • +${currency(addOn)} | Composite: ${currency(data.compositeTotalVnd || data.totalPriceVnd || 0)}`
+                : `Composite: ${currency(data.compositeTotalVnd || data.totalPriceVnd || 0)}`;
+        }
+
+        selectedMap = {};
+        (data.selected || []).forEach(x => selectedMap[x.categoryCode] = x);
+        renderSelectedTable();
+        renderItemsGrid();
+
+        const addBtn = document.getElementById('btn-add-to-cart');
+        if (addBtn) {
+            const hasParts = (data.selected || []).length > 0;
+            const invalid = hasParts && data.isValid === false;
+            addBtn.disabled = invalid;
+            addBtn.title = invalid
+                ? 'Sửa lỗi tương thích trước khi thêm vào giỏ'
+                : 'Thêm cấu hình vào giỏ hàng';
+            addBtn.classList.toggle('btn-secondary', invalid);
+            addBtn.classList.toggle('btn-primary', !invalid);
+        }
+
+        const container = document.getElementById('compatibility-messages');
+        container.innerHTML = '';
+        container.className = 'build-issues';
+
+        const issues = data.issues || [];
+        const matches = data.matches || [];
+        const selectedCount = (data.selected || []).length;
+        const hasCpu = !!(selectedMap['CPU']);
+        const hasMb = !!(selectedMap['MAINBOARD']);
+        const hasRam = !!(selectedMap['RAM']);
+        const hasPsu = !!(selectedMap['PSU']);
+        const hasGpu = !!(selectedMap['GPU']);
+        const canCheckSocket = hasCpu && hasMb;
+        const canCheckRam = hasMb && hasRam;
+        const canCheckPsu = hasPsu && (hasCpu || hasGpu);
+        const anyCheckReady = canCheckSocket || canCheckRam || canCheckPsu;
+
+        if (selectedCount === 0) {
+            container.innerHTML = '<div class="build-compat-hint">Chọn linh kiện để hệ thống kiểm tra tương thích tự động.</div>';
+            return;
+        }
+
+        if (!anyCheckReady && issues.length === 0 && matches.length === 0) {
+            const hints = [];
+            if (!canCheckSocket) hints.push('CPU + Mainboard (socket)');
+            if (!canCheckRam) hints.push('Mainboard + RAM (DDR)');
+            if (!canCheckPsu) hints.push('PSU + CPU/GPU (công suất)');
+            container.innerHTML = `<div class="build-compat-hint">Chưa đủ cặp để kiểm tra. Gợi ý chọn: ${hints.join(', ')}.</div>`;
+            return;
+        }
+
+        if (issues.length > 0) {
+            const block = document.createElement('div');
+            block.className = 'build-compat-block build-compat-fail';
+            block.innerHTML = '<strong class="build-compat-title">Không tương thích</strong>';
+            const ul = document.createElement('ul');
+            issues.forEach(i => {
+                const li = document.createElement('li');
+                li.innerText = i.message;
+                ul.appendChild(li);
+            });
+            block.appendChild(ul);
+            container.appendChild(block);
+        }
+
+        if (matches.length > 0) {
+            const block = document.createElement('div');
+            block.className = 'build-compat-block build-compat-ok';
+            block.innerHTML = data.isValid
+                ? '<strong class="build-compat-title">Cấu hình tương thích</strong>'
+                : '<strong class="build-compat-title">Phần đã khớp</strong>';
+            const ul = document.createElement('ul');
+            matches.forEach(m => {
+                const li = document.createElement('li');
+                li.innerText = m.message;
+                ul.appendChild(li);
+            });
+            block.appendChild(ul);
+            container.appendChild(block);
+        }
+
+        if (issues.length === 0 && matches.length === 0 && anyCheckReady) {
+            container.innerHTML = '<div class="build-compat-hint">Đang kiểm tra tương thích…</div>';
+        }
+    }
+
+    async function updateServices() {
+        const includeOverclock = !!document.getElementById('service-overclock')?.checked;
+        const includeExtendedWarranty = !!document.getElementById('service-warranty')?.checked;
+        const res = await fetch(endpoint.updateServices, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ includeOverclock, includeExtendedWarranty })
+        });
+        if (!res.ok) return;
+        renderSnapshot(await res.json());
+    }
+
+    async function applyCommand(categoryCode, componentId, qty) {
+        const res = await fetch(endpoint.applyCommand, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categoryCode, componentId, qty })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        renderSnapshot(data);
+    }
+
+    document.getElementById('build-search').addEventListener('input', renderItemsGrid);
+    document.getElementById('build-sort').addEventListener('change', renderItemsGrid);
+    document.getElementById('btn-close-picker').addEventListener('click', closePicker);
+    document.querySelectorAll('[data-close-picker]').forEach(el => el.addEventListener('click', closePicker));
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePicker();
+    });
+
+    document.getElementById('btn-refresh').addEventListener('click', () => {
+        window.location.reload();
+    });
+
+    document.getElementById('btn-export-excel').addEventListener('click', exportBuildAsExcel);
+
+    document.getElementById('btn-add-to-cart').addEventListener('click', async () => {
+        const payload = gatherSelectionFromState();
+        const res = await fetch(endpoint.addToCart, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            let message = 'Không thể thêm cấu hình vào giỏ hàng. Vui lòng thử lại.';
+            try {
+                const err = await res.json();
+                if (err.message) message = err.message;
+                if (Array.isArray(err.issues) && err.issues.length > 0) {
+                    message += '\n• ' + err.issues.map(i => i.message).join('\n• ');
+                }
+            } catch { /* ignore */ }
+            openCartPopup(message, false);
+            return;
+        }
+        const data = await res.json();
+        openCartPopup(data.message || 'Đã thêm vào giỏ hàng.', true);
+    });
+
+    document.querySelectorAll('.btn-preset').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const presetCode = btn.dataset.preset;
+            const res = await fetch(endpoint.applyPreset, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ presetCode })
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            renderSnapshot(data);
+        });
+    });
+
+    document.querySelectorAll('.btn-ecosystem').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const ecosystemCode = btn.dataset.ecosystem;
+            const res = await fetch(endpoint.applyEcosystem, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ecosystemCode })
+            });
+            if (!res.ok) return;
+            renderSnapshot(await res.json());
+        });
+    });
+
+    document.getElementById('btn-undo').addEventListener('click', async () => {
+        const res = await fetch(endpoint.undo, { method: 'POST' });
+        if (!res.ok) return;
+        renderSnapshot(await res.json());
+    });
+
+    document.getElementById('btn-redo').addEventListener('click', async () => {
+        const res = await fetch(endpoint.redo, { method: 'POST' });
+        if (!res.ok) return;
+        renderSnapshot(await res.json());
+    });
+
+    document.getElementById('service-overclock')?.addEventListener('change', updateServices);
+    document.getElementById('service-warranty')?.addEventListener('change', updateServices);
+
+    if (isAuthenticated) {
+        document.getElementById('btn-save-config')?.addEventListener('click', async () => {
+            const name = document.getElementById('build-name').value || '';
+            const res = await fetch(endpoint.saveConfiguration, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            const msg = data.message || 'Da luu cau hinh.';
+            if (data.success) {
+                alert(`${msg}\nBạn có thể bấm "Xem cấu hình đã lưu" để xem lại danh sách.`);
+            } else {
+                alert(msg);
+            }
+        });
+    }
+
+    document.getElementById('btn-popup-ok')?.addEventListener('click', closeCartPopup);
+    document.getElementById('btn-popup-close-x')?.addEventListener('click', closeCartPopup);
+    document.querySelectorAll('[data-popup-close]').forEach(el => el.addEventListener('click', closeCartPopup));
+
+    renderCategoryList();
+    renderItemsGrid();
+    renderSelectedTable();
+    syncPickerTitle();
+</script>
+}
+

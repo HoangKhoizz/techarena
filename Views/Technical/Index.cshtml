@@ -1,0 +1,217 @@
+@using ban_link_kien_PC.Domain.Orders
+@model ban_link_kien_PC.Controllers.TechnicalDashboardViewModel
+@{
+    ViewData["Title"] = "Lắp ráp PC — Kỹ thuật";
+    Layout = "_AdminLayout";
+    string TabClass(string tab) => Model.Tab == tab ? "nav-link active" : "nav-link";
+}
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-0">Dashboard kỹ thuật</h2>
+            <div class="text-muted small">Cập nhật tiến độ lắp ráp PC (Exported → Assembling → Ready / Issue)</div>
+        </div>
+        <a class="btn btn-sm btn-outline-secondary" asp-controller="Admin" asp-action="Packing">Kho / Đóng gói</a>
+    </div>
+
+    @if (TempData["TechInfo"] is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+    @if (TempData["TechError"] is string err && !string.IsNullOrWhiteSpace(err))
+    {
+        <div class="alert alert-danger py-2">@err</div>
+    }
+
+    <form method="get" class="row g-2 mb-3 align-items-end">
+        <input type="hidden" name="tab" value="@Model.Tab" />
+        <div class="col-md-6">
+            <label class="form-label small mb-1">Tìm kiếm</label>
+            <input name="keyword" value="@Model.Keyword" class="form-control" placeholder="Mã đơn, người nhận, SĐT..." />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" type="submit">Lọc</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">Reset</a>
+        </div>
+    </form>
+
+    <ul class="nav nav-tabs mb-3 flex-wrap">
+        <li class="nav-item">
+            <a class="@TabClass("exported")" asp-action="Index" asp-route-tab="exported" asp-route-keyword="@Model.Keyword">
+                Đã xuất kho <span class="badge text-bg-info">@Model.Counts.Exported</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("assembling")" asp-action="Index" asp-route-tab="assembling" asp-route-keyword="@Model.Keyword">
+                Đang lắp ráp <span class="badge text-bg-primary">@Model.Counts.Assembling</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("ready")" asp-action="Index" asp-route-tab="ready" asp-route-keyword="@Model.Keyword">
+                Sẵn sàng giao <span class="badge text-bg-success">@Model.Counts.Ready</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("issues")" asp-action="Index" asp-route-tab="issues" asp-route-keyword="@Model.Keyword">
+                Tạm ngưng lỗi <span class="badge text-bg-danger">@Model.Counts.Issues</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách nhận</th>
+                    <th>Linh kiện</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Tổng tiền</th>
+                    <th style="min-width:280px">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="6" class="text-muted">Không có đơn ở tab này. Hãy xuất kho từ trang Đóng gói trước.</td></tr>
+            }
+            else
+            {
+                foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">#@row.OrderId</div>
+                            <div class="small text-muted">@row.OrderType · @row.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@row.ReceiverName</div>
+                            <div class="small text-muted">@row.ReceiverPhone</div>
+                            <div class="small text-muted">@row.ShippingAddress</div>
+                            @if (!string.IsNullOrWhiteSpace(row.LatestTimelineNote))
+                            {
+                                <div class="small mt-1 text-warning">@row.LatestTimelineNote</div>
+                            }
+                        </td>
+                        <td class="small">@row.LineCount dòng · @row.TotalQty SP</td>
+                        <td>
+                            <span class="badge @row.StatusBadgeClass">@row.StatusDisplay</span>
+                            @if (!string.IsNullOrWhiteSpace(row.IssueReasonDisplay))
+                            {
+                                <div class="small text-danger mt-1">@row.IssueReasonDisplay</div>
+                            }
+                        </td>
+                        <td class="text-end">@row.TotalPriceVnd.ToString("N0") đ</td>
+                        <td>
+                            <div class="d-flex flex-column gap-2">
+                                @if (row.StatusCode == OrderStatusCatalog.Exported)
+                                {
+                                    <form asp-action="StartAssembling" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <button type="submit" class="btn btn-sm btn-primary w-100">Bắt đầu ráp</button>
+                                    </form>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger w-100 btn-report-issue"
+                                            data-order-id="@row.OrderId"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#issueModal">
+                                        Báo lỗi (Tạm ngưng)
+                                    </button>
+                                }
+
+                                @if (row.StatusCode == OrderStatusCatalog.Assembling)
+                                {
+                                    <form asp-action="CompleteAssembly" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <button type="submit" class="btn btn-sm btn-success w-100">Hoàn tất lắp ráp</button>
+                                    </form>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger w-100 btn-report-issue"
+                                            data-order-id="@row.OrderId"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#issueModal">
+                                        Báo lỗi (Tạm ngưng)
+                                    </button>
+                                }
+
+                                @if (row.StatusCode == OrderStatusCatalog.ReadyToDeliver)
+                                {
+                                    <a class="btn btn-sm btn-outline-info w-100"
+                                       asp-controller="Admin" asp-action="Packing"
+                                       asp-route-keyword="@row.OrderId">Tạo vận đơn (Kho)</a>
+                                }
+
+                                @if (OrderStatusCatalog.IsAssemblyIssue(row.StatusCode))
+                                {
+                                    <form asp-action="MarkExported" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <button type="submit" class="btn btn-sm btn-warning w-100">
+                                            Đã đổi linh kiện → Xuất kho lại
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="issueModal" tabindex="-1" aria-labelledby="issueModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form asp-action="ReportIssue" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="orderId" id="issueOrderId" />
+            <input type="hidden" name="tab" value="@Model.Tab" />
+            <input type="hidden" name="keyword" value="@Model.Keyword" />
+            <div class="modal-header">
+                <h5 class="modal-title" id="issueModalLabel">Báo lỗi — tạm ngưng lắp ráp</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="issueReasonCode">Nguyên nhân</label>
+                    <select class="form-select" name="issueReasonCode" id="issueReasonCode" required>
+                        <option value="">— Chọn nguyên nhân —</option>
+                        <option value="@OrderAssemblyService.IssueDoa">Linh kiện bị lỗi (DOA)</option>
+                        <option value="@OrderAssemblyService.IssueCaseMismatch">Không vừa vỏ Case</option>
+                    </select>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label" for="issueNote">Ghi chú thêm (tuỳ chọn)</label>
+                    <textarea class="form-control" name="note" id="issueNote" rows="2" maxlength="500" placeholder="VD: GPU DOA — LED không lên..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Huỷ</button>
+                <button type="submit" class="btn btn-danger">Xác nhận tạm ngưng</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var orderInput = document.getElementById('issueOrderId');
+    document.querySelectorAll('.btn-report-issue').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (orderInput) orderInput.value = btn.getAttribute('data-order-id') || '';
+        });
+    });
+})();
+</script>
+}

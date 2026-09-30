@@ -1,0 +1,71 @@
+@model ban_link_kien_PC.Controllers.CskhQuestionsPageVm
+@{
+    ViewData["Title"] = "Hỏi đáp sản phẩm";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell staff-admin">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Hỏi đáp sản phẩm</h2>
+        <div class="btn-group btn-group-sm">
+            <a class="btn @(Model.StatusFilter=="PENDING"?"btn-primary":"btn-outline-primary")" asp-action="Questions" asp-route-status="PENDING">Chờ trả lời</a>
+            <a class="btn @(Model.StatusFilter=="ANSWERED"?"btn-primary":"btn-outline-primary")" asp-action="Questions" asp-route-status="ANSWERED">Đã trả lời</a>
+            <a class="btn @(Model.StatusFilter=="HIDDEN"?"btn-primary":"btn-outline-primary")" asp-action="Questions" asp-route-status="HIDDEN">Ẩn</a>
+            <a class="btn @(Model.StatusFilter=="ALL"?"btn-primary":"btn-outline-primary")" asp-action="Questions" asp-route-status="ALL">Tất cả</a>
+        </div>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info)
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="alert alert-info">Không có câu hỏi.</div>
+    }
+    else
+    {
+        @foreach (var r in Model.Rows)
+        {
+            <div class="card page-card mb-3">
+                <div class="card-header d-flex justify-content-between flex-wrap gap-2">
+                    <div>
+                        <strong>@r.ProductName</strong>
+                        <span class="small text-muted">· @r.Sku</span>
+                    </div>
+                    <span class="badge text-bg-secondary">@r.StatusDisplay</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <span class="fw-semibold">@r.AskerName</span>
+                        <span class="small text-muted">· @r.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <p class="mb-3">@r.Question</p>
+                    @if (!string.IsNullOrWhiteSpace(r.Answer))
+                    {
+                        <div class="alert alert-light border mb-3">
+                            <div class="small text-muted mb-1">Trả lời</div>
+                            @r.Answer
+                        </div>
+                    }
+                    @if (r.Status != "HIDDEN")
+                    {
+                        <form asp-action="AnswerQuestion" method="post" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@r.ProductQuestionId" />
+                            <textarea name="answer" class="form-control mb-2" rows="2" placeholder="Nhập câu trả lời…" required>@r.Answer</textarea>
+                            <button type="submit" class="btn btn-sm btn-primary">Lưu trả lời</button>
+                        </form>
+                        <form asp-action="HideQuestion" method="post" class="d-inline"
+                              onsubmit="return confirm('Ẩn câu hỏi này?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@r.ProductQuestionId" />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Ẩn</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>

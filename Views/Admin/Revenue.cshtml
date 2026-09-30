@@ -1,0 +1,215 @@
+@using System
+@using ban_link_kien_PC.Domain.Orders
+@model ban_link_kien_PC.Controllers.AdminRevenueViewModel
+@{
+    ViewData["Title"] = "Thống kê doanh thu";
+    Layout = "_AdminLayout";
+    string FromVal = Model.FromDate?.ToString("yyyy-MM-dd") ?? "";
+    string ToVal = Model.ToDate?.ToString("yyyy-MM-dd") ?? "";
+    string PayClass(string p) => string.Equals(Model.Payment, p, StringComparison.OrdinalIgnoreCase)
+        ? "btn btn-sm btn-primary"
+        : "btn btn-sm btn-outline-primary";
+    var r = Model.Report;
+}
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Thống kê doanh thu</h2>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-success"
+               asp-action="RevenueExport"
+               asp-route-fromDate="@FromVal"
+               asp-route-toDate="@ToVal"
+               asp-route-statusCode="@Model.StatusCode"
+               asp-route-payment="@Model.Payment">
+                <i class="bi bi-file-earmark-excel"></i> Xuất Excel
+            </a>
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Index">Dashboard</a>
+        </div>
+    </div>
+
+    <form method="get" class="card page-card mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Từ ngày</label>
+                    <input type="date" name="fromDate" value="@FromVal" class="form-control" required />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Đến ngày</label>
+                    <input type="date" name="toDate" value="@ToVal" class="form-control" required />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Trạng thái đơn</label>
+                    <select name="statusCode" class="form-select">
+                        @foreach (var opt in Model.StatusOptions)
+                        {
+                            if (string.Equals(opt.Value, Model.StatusCode ?? "", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@opt.Value" selected>@opt.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@opt.Value">@opt.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Thanh toán</label>
+                    <input type="hidden" name="payment" id="paymentInput" value="@Model.Payment" />
+                    <div class="d-flex flex-wrap gap-1">
+                        <button type="submit" class="@PayClass("all")" onclick="document.getElementById('paymentInput').value='all'">Tất cả</button>
+                        <button type="submit" class="@PayClass("cod")" onclick="document.getElementById('paymentInput').value='cod'">COD</button>
+                        <button type="submit" class="@PayClass("online")" onclick="document.getElementById('paymentInput').value='online'">Online</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-2">
+                <button type="submit" class="btn btn-outline-primary" onclick="document.getElementById('paymentInput').value='@Model.Payment'">Áp dụng lọc</button>
+                <a class="btn btn-outline-secondary" asp-action="Revenue">Tháng này</a>
+            </div>
+            <p class="small text-muted mb-0 mt-2">
+                Doanh thu ghi nhận = đơn <strong>Đã thanh toán</strong> / <strong>Hoàn thành</strong> / <strong>Giao thành công — đã thu tiền</strong>.
+            </p>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="card page-card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Số đơn (lọc)</div>
+                    <div class="h4 mb-0">@r.TotalOrders.ToString("N0")</div>
+                    <div class="small text-muted">Tổng giá trị: @r.TotalAmountVnd.ToString("N0") đ</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card page-card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Doanh thu ghi nhận</div>
+                    <div class="h4 mb-0 text-success">@r.RecognizedRevenueVnd.ToString("N0") đ</div>
+                    <div class="small text-muted">@r.RecognizedOrderCount.ToString("N0") đơn</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <a class="card page-card h-100 text-decoration-none"
+               asp-action="Revenue" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal" asp-route-payment="cod" asp-route-statusCode="@Model.StatusCode">
+                <div class="card-body">
+                    <div class="text-muted small">Ship COD</div>
+                    <div class="h4 mb-0 text-body">@r.CodRevenueVnd.ToString("N0") đ</div>
+                    <div class="small text-muted">@r.CodOrderCount đơn · GT @r.CodAmountVnd.ToString("N0") đ</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a class="card page-card h-100 text-decoration-none"
+               asp-action="Revenue" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal" asp-route-payment="online" asp-route-statusCode="@Model.StatusCode">
+                <div class="card-body">
+                    <div class="text-muted small">Thanh toán online (MoMo…)</div>
+                    <div class="h4 mb-0 text-body">@r.OnlineRevenueVnd.ToString("N0") đ</div>
+                    <div class="small text-muted">@r.OnlineOrderCount đơn · GT @r.OnlineAmountVnd.ToString("N0") đ</div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card page-card mb-3">
+        <div class="card-header fw-semibold">Doanh thu theo trạng thái đơn (trong khoảng ngày)</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Số đơn</th>
+                            <th class="text-end">Tổng giá trị</th>
+                            <th class="text-end">Doanh thu ghi nhận</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (r.ByStatus.Count == 0)
+                    {
+                        <tr><td colspan="5" class="text-muted">Không có dữ liệu trong khoảng đã chọn.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var b in r.ByStatus)
+                        {
+                            <tr>
+                                <td>@b.StatusDisplay</td>
+                                <td class="text-end">@b.OrderCount.ToString("N0")</td>
+                                <td class="text-end">@b.TotalAmountVnd.ToString("N0") đ</td>
+                                <td class="text-end">@b.RevenueAmountVnd.ToString("N0") đ</td>
+                                <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-secondary"
+                                       asp-action="Revenue"
+                                       asp-route-fromDate="@FromVal"
+                                       asp-route-toDate="@ToVal"
+                                       asp-route-statusCode="@b.StatusCode"
+                                       asp-route-payment="@Model.Payment">Lọc</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card page-card">
+        <div class="card-header fw-semibold d-flex justify-content-between flex-wrap gap-2">
+            <span>Chi tiết đơn hàng</span>
+            <span class="small text-muted">Hiển thị tối đa 500 đơn</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã</th>
+                            <th>Khách</th>
+                            <th>Thanh toán</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Tổng tiền</th>
+                            <th>Ngày tạo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (r.Orders.Count == 0)
+                    {
+                        <tr><td colspan="6" class="text-muted">Không có đơn phù hợp.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var o in r.Orders)
+                        {
+                            <tr>
+                                <td>#@o.OrderId</td>
+                                <td>
+                                    <div class="fw-semibold">@o.ReceiverName</div>
+                                    <div class="small text-muted">@o.ReceiverPhone</div>
+                                </td>
+                                <td>@o.PaymentMethodCode</td>
+                                <td>
+                                    <span class="badge @OrderStatusCatalog.ToBadgeClass(o.StatusCode)">@o.StatusDisplay</span>
+                                    @if (o.IsRevenue)
+                                    {
+                                        <span class="badge text-bg-success">DT</span>
+                                    }
+                                </td>
+                                <td class="text-end">@o.TotalPriceVnd.ToString("N0") đ</td>
+                                <td>@o.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

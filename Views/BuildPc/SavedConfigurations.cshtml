@@ -1,0 +1,72 @@
+@model ban_link_kien_PC.Controllers.SavedBuildListViewModel
+@{
+    ViewData["Title"] = "Cau hinh da luu";
+}
+
+<div class="page-shell saved-build-shell">
+    <div class="page-head mb-3">
+        <p class="mb-2 small">
+            <a asp-controller="BuildPc" asp-action="Index">← Quay lai Build PC</a>
+        </p>
+        <h2 class="page-title mb-1">Danh sach cau hinh da luu</h2>
+        @if (Model.IsGuest)
+        {
+            <div class="alert alert-info mb-0">
+                Ban dang o che do guest. Danh sach nay hien thi de ban co the chup lai cau hinh da luu.
+            </div>
+        }
+    </div>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="alert alert-warning">Chua co cau hinh nao duoc luu.</div>
+    }
+    else
+    {
+        <div class="saved-build-list">
+            @foreach (var row in Model.Rows)
+            {
+                <section class="saved-build-card mb-3">
+                    <div class="saved-build-card-head">
+                        <div>
+                            <h5 class="mb-1">@row.Name</h5>
+                            <div class="small text-muted">
+                                Ma cau hinh: #@row.BuildConfigurationId - @row.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="small text-muted">Tong gia</div>
+                            <div class="fw-bold text-danger">@row.TotalPriceVnd.ToString("N0") đ</div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive mt-2">
+                        <table class="table table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:22%">Danh muc</th>
+                                    <th>Linh kien</th>
+                                    <th class="text-center" style="width:10%">SL</th>
+                                    <th class="text-end" style="width:16%">Don gia</th>
+                                    <th class="text-end" style="width:16%">Thanh tien</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var item in row.Items)
+                            {
+                                <tr>
+                                    <td>@item.Category</td>
+                                    <td>@item.ComponentName</td>
+                                    <td class="text-center">@item.Qty</td>
+                                    <td class="text-end">@item.UnitPriceVnd.ToString("N0") đ</td>
+                                    <td class="text-end">@item.LineTotalVnd.ToString("N0") đ</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,91 @@
+@model IReadOnlyList<ban_link_kien_PC.Controllers.PromoCodeListRow>
+@{
+    ViewData["Title"] = "Mã khuyến mãi";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell staff-admin">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-1">Mã khuyến mãi</h2>
+            <p class="text-muted mb-0 small">Tạo / sửa mã · giới hạn lượt · hạng áp dụng.</p>
+        </div>
+        <a class="btn btn-primary btn-sm" asp-action="Create"><i class="bi bi-plus-lg"></i> Thêm mã</a>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info)
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    <div class="card page-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 staff-table">
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Giảm</th>
+                            <th>Đơn tối thiểu</th>
+                            <th>Lượt dùng</th>
+                            <th>Hạng</th>
+                            <th>Hiệu lực</th>
+                            <th>TT</th>
+                            <th style="width:220px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">Chưa có mã. Seed có WELCOME10, GOLD50K.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var r in Model)
+                        {
+                            <tr class="@(r.IsActive ? "" : "opacity-75")">
+                                <td>
+                                    <code class="fw-semibold">@r.Code</code>
+                                    @if (!string.IsNullOrWhiteSpace(r.Description))
+                                    {
+                                        <div class="small text-muted">@r.Description</div>
+                                    }
+                                </td>
+                                <td>@r.DiscountDisplay</td>
+                                <td>@(r.MinOrderVnd is null ? "—" : $"{r.MinOrderVnd:N0}₫")</td>
+                                <td>@r.UsedCount / @(r.MaxUses?.ToString() ?? "∞")</td>
+                                <td>@r.TierDisplay</td>
+                                <td class="small">
+                                    @(r.StartsAtUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "—")
+                                    →
+                                    @(r.ExpiresAtUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "—")
+                                </td>
+                                <td>
+                                    @if (r.IsActive)
+                                    { <span class="badge text-bg-success">Bật</span> }
+                                    else
+                                    { <span class="badge text-bg-secondary">Tắt</span> }
+                                </td>
+                                <td class="text-nowrap">
+                                    <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@r.PromoCodeId">Sửa</a>
+                                    <form asp-action="ToggleActive" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@r.PromoCodeId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">@(r.IsActive ? "Tắt" : "Bật")</button>
+                                    </form>
+                                    <form asp-action="Delete" method="post" class="d-inline"
+                                          onsubmit="return confirm('Xóa / tắt mã @r.Code?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@r.PromoCodeId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,8 @@
+@model int
+<a class="ta-icon-btn" asp-controller="Cart" asp-action="Index" title="Giỏ hàng">
+    <i class="bi bi-cart3"></i>
+    @if (Model > 0)
+    {
+        <span class="badge rounded-pill bg-danger">@Model</span>
+    }
+</a>

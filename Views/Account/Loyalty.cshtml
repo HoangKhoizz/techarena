@@ -1,0 +1,95 @@
+@model ban_link_kien_PC.Controllers.LoyaltyPageViewModel
+@{
+    ViewData["Title"] = "Điểm tích lũy";
+}
+
+<div class="ta-container py-4 page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Điểm tích lũy &amp; hạng thành viên</h2>
+        <a class="btn btn-outline-secondary btn-sm" asp-action="Profile">← Hồ sơ</a>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card page-card h-100 text-center">
+                <div class="card-body">
+                    <div class="display-5 fw-bold">@Model.LoyaltyPoints</div>
+                    <div class="text-muted">điểm hiện có</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card page-card h-100 text-center">
+                <div class="card-body">
+                    <div class="h3 mb-1">@Model.MembershipTierDisplay</div>
+                    <div class="text-muted small mb-2">Hạng hiện tại</div>
+                    @if (Model.DiscountPercent > 0)
+                    {
+                        <span class="badge text-bg-success">Ưu đãi -@Model.DiscountPercent.ToString("0.#")%</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-secondary">Chưa có ưu đãi hạng</span>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card page-card h-100">
+                <div class="card-body">
+                    <p class="mb-2">@Model.BenefitSummary</p>
+                    @if (Model.PointsToNextTier > 0)
+                    {
+                        <p class="mb-0 small text-muted">
+                            Còn <strong>@Model.PointsToNextTier</strong> điểm nữa để lên <strong>@Model.NextTierDisplay</strong>.
+                        </p>
+                    }
+                    else
+                    {
+                        <p class="mb-0 small text-success">Bạn đã ở hạng cao nhất.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card page-card">
+        <div class="card-header fw-semibold">Bảng hạng thành viên</div>
+        <div class="card-body p-0">
+            <table class="table mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Hạng</th>
+                        <th>Điểm tối thiểu</th>
+                        <th>Ưu đãi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="@(Model.MembershipTier == "NONE" ? "table-active" : "")">
+                        <td>Khách thường</td>
+                        <td>0</td>
+                        <td>—</td>
+                    </tr>
+                    <tr class="@(Model.MembershipTier == "SILVER" ? "table-active" : "")">
+                        <td>Thẻ Bạc</td>
+                        <td>@Model.SilverMin</td>
+                        <td>Giảm 2%</td>
+                    </tr>
+                    <tr class="@(Model.MembershipTier == "GOLD" ? "table-active" : "")">
+                        <td>Thẻ Vàng</td>
+                        <td>@Model.GoldMin</td>
+                        <td>Giảm 5%</td>
+                    </tr>
+                    <tr class="@(Model.MembershipTier == "PLATINUM" ? "table-active" : "")">
+                        <td>Thẻ Bạch kim</td>
+                        <td>@Model.PlatinumMin</td>
+                        <td>Giảm 8%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer small text-muted">
+            Mỗi 10.000₫ trên đơn hoàn thành = 1 điểm. Điểm cộng khi đơn thanh toán / giao thành công.
+        </div>
+    </div>
+</div>

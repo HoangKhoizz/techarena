@@ -1,0 +1,61 @@
+@model IReadOnlyList<ban_link_kien_PC.Controllers.AdminWaitlistRow>
+@{
+    ViewData["Title"] = "Đăng ký theo dõi sản phẩm";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Quản lý đăng ký theo dõi sản phẩm</h2>
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">Dashboard</a>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Khách hàng</th>
+                    <th>Ngày đăng ký</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Count == 0)
+            {
+                <tr><td colspan="4" class="text-muted">Chưa có đăng ký theo dõi nào.</td></tr>
+            }
+            else
+            {
+                @foreach (var row in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@row.ComponentName</div>
+                            <div class="small text-muted">@row.ComponentSku • @row.CategoryName</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@row.CustomerName</div>
+                            <div class="small text-muted">@row.CustomerEmail</div>
+                        </td>
+                        <td>@row.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <form asp-action="WaitlistDelete" method="post" class="d-inline" onsubmit="return confirm('Xóa đăng ký theo dõi này?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="stockWaitlistId" value="@row.StockWaitlistId" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+

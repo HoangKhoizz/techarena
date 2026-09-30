@@ -1,0 +1,188 @@
+@model ban_link_kien_PC.Controllers.CartIndexViewModel
+@{
+    ViewData["Title"] = "Giỏ hàng";
+    var returnUrl = ViewBag.CurrentReturnUrl as string ?? Url.Action("Index", "Cart");
+}
+
+<div class="ta-container py-4">
+<div class="page-shell cart-shell">
+    <div class="page-head mb-3">
+        <h2 class="page-title mb-1">Giỏ hàng của bạn</h2>
+        <p class="text-muted mb-0">Kiểm tra linh kiện trước khi đặt hàng COD.</p>
+    </div>
+
+    @if (ViewBag.CheckoutError is string checkoutError && !string.IsNullOrWhiteSpace(checkoutError))
+    {
+        <div class="alert alert-warning">@checkoutError</div>
+    }
+
+    @if (Model.Cards.Count == 0)
+    {
+        <div class="alert alert-info">
+            Giỏ hàng đang trống. Hãy <a asp-controller="BuildPc" asp-action="Index">Build PC</a> và thêm linh kiện, hoặc <a asp-controller="Home" asp-action="Index">về trang chủ</a>.
+        </div>
+    }
+    else
+    {
+        <div class="d-grid gap-3 mb-3">
+            @foreach (var card in Model.Cards)
+            {
+                <div class="card page-card cart-group-card @(card.IsOutOfStock ? "cart-group-card-out" : "")" data-card-id="@card.CardId" data-card-total="@card.CardTotalVnd" data-card-eligible="@(card.IsSelectable ? "1" : "0")">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-2">
+                            @if (card.IsSelectable)
+                            {
+                                <input class="form-check-input cart-card-check" type="checkbox" checked />
+                            }
+                            else
+                            {
+                                <input class="form-check-input cart-card-check" type="checkbox" disabled />
+                            }
+                            <div>
+                                <div class="fw-semibold">@card.Title</div>
+                                <div class="small text-muted">
+                                    @if (card.CardType == "BUILD_PC")
+                                    {
+                                        <span>Cấu hình tự build (Composite card)</span>
+                                    }
+                                    else if (card.CardType == "PREBUILT_PC" || card.CardType == "WORKSTATION_PC")
+                                    {
+                                        <span>PC lắp sẵn/Workstation</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Linh kiện đơn</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            @if (card.IsOutOfStock)
+                            {
+                                <span class="badge text-bg-warning">Out stock - chưa tính tiền</span>
+                            }
+                            <strong class="text-danger">@card.CardTotalVnd.ToString("N0") đ</strong>
+                            <form asp-action="RemoveCard" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="cardId" value="@card.CardId" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Xóa card</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            @foreach (var item in card.Items)
+                            {
+                                <div class="cart-item-row @(item.IsOutOfStock ? "cart-item-out" : "")">
+                                    <a class="cart-item-thumb" asp-route="ProductDetail" asp-route-slug="@SeoSlug.From(item.Name)" asp-route-id="@item.ComponentId">
+                                        <img class="ta-product-img" src="@item.ImageUrl" alt="@item.Name" />
+                                    </a>
+                                    <div>
+                                        <a class="fw-semibold text-decoration-none" asp-route="ProductDetail" asp-route-slug="@SeoSlug.From(item.Name)" asp-route-id="@item.ComponentId">@item.Name</a>
+                                        <div class="small text-muted">@item.Sku</div>
+                                        <div class="small">SL: @item.Qty x @item.UnitPriceVnd.ToString("N0") đ</div>
+                                        @if (item.IsOutOfStock)
+                                        {
+                                            <div class="small text-danger">Hết hàng hoặc không đủ tồn kho (còn @item.StockQty).</div>
+                                            <div class="mt-1 d-flex gap-2 flex-wrap">
+                                                @if (User.Identity?.IsAuthenticated == true)
+                                                {
+                                                    <form asp-controller="Catalog" asp-action="JoinWaitlist" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="componentId" value="@item.ComponentId" />
+                                                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                                        <button type="submit" class="btn btn-sm btn-outline-primary">Đăng ký theo dõi</button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl">Đăng nhập để theo dõi</a>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="text-end fw-semibold @(item.IsOutOfStock ? "text-muted" : "text-danger")">
+                                        @(item.IsOutOfStock ? "0 đ" : $"{item.LineTotalVnd:N0} đ")
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="card page-card mb-3">
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <div class="small text-muted">Tổng tiền theo card đã chọn</div>
+                    <div class="h5 mb-0 text-danger" id="cart-selected-total" data-base-total="@Model.GrandTotalVnd">@Model.GrandTotalVnd.ToString("N0") đ</div>
+                </div>
+                <div class="small text-muted">Bỏ chọn card nào thì card đó không cộng vào tổng tạm tính.</div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <form asp-action="PrepareCheckout" method="post" id="checkout-selected-form" class="d-inline">
+                @Html.AntiForgeryToken()
+                <div id="selected-card-inputs"></div>
+                <button type="submit" class="btn btn-success">Tiến hành thanh toán (COD)</button>
+            </form>
+            <a class="btn btn-primary" asp-controller="BuildPc" asp-action="Index">Tiếp tục Build PC</a>
+            <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">Về trang chủ</a>
+        </div>
+    }
+</div>
+</div>
+
+@section Scripts {
+<script>
+(() => {
+    const checks = Array.from(document.querySelectorAll('.cart-card-check'));
+    const totalEl = document.getElementById('cart-selected-total');
+    const checkoutForm = document.getElementById('checkout-selected-form');
+    const selectedInputs = document.getElementById('selected-card-inputs');
+    if (!checks.length || !totalEl || !checkoutForm || !selectedInputs) return;
+
+    const currency = (v) => Number(v || 0).toLocaleString('vi-VN') + ' đ';
+    const syncSelectedCardInputs = () => {
+        selectedInputs.innerHTML = '';
+        checks.forEach(chk => {
+            const card = chk.closest('.cart-group-card');
+            if (!card) return;
+            const eligible = card.dataset.cardEligible === '1';
+            if (!eligible || !chk.checked) return;
+
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'selectedCardIds';
+            hidden.value = card.dataset.cardId || '';
+            selectedInputs.appendChild(hidden);
+        });
+    };
+
+    const recalc = () => {
+        let total = 0;
+        checks.forEach(chk => {
+            const card = chk.closest('.cart-group-card');
+            if (!card) return;
+            const eligible = card.dataset.cardEligible === '1';
+            if (!eligible || !chk.checked) return;
+            total += Number(card.dataset.cardTotal || 0);
+        });
+        totalEl.textContent = currency(total);
+        syncSelectedCardInputs();
+    };
+
+    checks.forEach(chk => chk.addEventListener('change', recalc));
+    checkoutForm.addEventListener('submit', (e) => {
+        syncSelectedCardInputs();
+        if (!selectedInputs.querySelector('input[name="selectedCardIds"]')) {
+            e.preventDefault();
+            alert('Vui lòng chọn ít nhất 1 card hợp lệ để thanh toán.');
+        }
+    });
+    recalc();
+})();
+</script>
+}

@@ -1,0 +1,8 @@
+﻿/* Scoped layout overrides — keep minimal to avoid conflicting with site.css */
+
+a.navbar-brand {
+  white-space: normal;
+  text-align: center;
+  word-break: break-all;
+}
+

@@ -1,0 +1,359 @@
+@using System
+@using System.Collections.Generic
+@using System.Security.Claims
+@inject ban_link_kien_PC.Domain.Notifications.IUserNotificationCenter UserNotificationCenter
+@{
+    var hasHeaderUserId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var headerUserId);
+    var currentReturnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+    IReadOnlyList<ban_link_kien_PC.Domain.Notifications.UserNotificationItem> headerNotifyItems = hasHeaderUserId
+        ? UserNotificationCenter.GetLatest(headerUserId, 8)
+        : new List<ban_link_kien_PC.Domain.Notifications.UserNotificationItem>();
+    var headerNotifyCount = hasHeaderUserId
+        ? UserNotificationCenter.GetUnreadCount(headerUserId)
+        : 0;
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+
+    // —— SEO defaults: Tech Arena ——
+    const string brandName = "Tech Arena";
+    const string defaultTitle = "Tech Arena — PC Gaming & Linh kiện máy tính chính hãng";
+    const string defaultDescription = "Tech Arena chuyên bán PC Gaming, workstation và linh kiện máy tính chính hãng: CPU, VGA, Mainboard, RAM, SSD. Build PC theo nhu cầu, bảo hành uy tín, giao hàng toàn quốc.";
+    const string defaultKeywords = "Tech Arena, PC Gaming, linh kiện máy tính, build PC, CPU, VGA, mainboard, RAM, SSD, mua PC online";
+
+    var pageTitle = ViewData["Title"] as string;
+    if (string.IsNullOrWhiteSpace(pageTitle))
+        pageTitle = defaultTitle;
+
+    var metaDescription = ViewData["MetaDescription"] as string;
+    if (string.IsNullOrWhiteSpace(metaDescription))
+        metaDescription = defaultDescription;
+
+    var metaKeywords = ViewData["MetaKeywords"] as string;
+    if (string.IsNullOrWhiteSpace(metaKeywords))
+        metaKeywords = defaultKeywords;
+
+    var ogTitle = ViewData["OgTitle"] as string;
+    if (string.IsNullOrWhiteSpace(ogTitle))
+        ogTitle = pageTitle;
+
+    var ogDescription = ViewData["OgDescription"] as string;
+    if (string.IsNullOrWhiteSpace(ogDescription))
+        ogDescription = metaDescription;
+
+    var ogImage = ViewData["OgImage"] as string;
+    if (string.IsNullOrWhiteSpace(ogImage))
+        ogImage = Url.Content("~/images/logo.svg");
+
+    // Absolute URLs for OG / canonical
+    var request = Context.Request;
+    var baseUrl = $"{request.Scheme}://{request.Host}";
+    var canonicalPath = ViewData["CanonicalUrl"] as string;
+    if (string.IsNullOrWhiteSpace(canonicalPath))
+        canonicalPath = $"{request.Path}{request.QueryString}";
+    var canonicalUrl = canonicalPath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+        ? canonicalPath
+        : baseUrl + (canonicalPath.StartsWith('/') ? canonicalPath : "/" + canonicalPath);
+
+    var ogImageAbsolute = ogImage.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+        ? ogImage
+        : baseUrl + (ogImage.StartsWith("~/") ? Url.Content(ogImage) : (ogImage.StartsWith('/') ? ogImage : "/" + ogImage));
+
+    var fullDocumentTitle = pageTitle.Contains(brandName, StringComparison.OrdinalIgnoreCase)
+        ? pageTitle
+        : $"{pageTitle} | {brandName}";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@fullDocumentTitle</title>
+    <meta name="description" content="@metaDescription" />
+    <meta name="keywords" content="@metaKeywords" />
+    <meta name="author" content="Tech Arena" />
+    <meta name="robots" content="index, follow" />
+
+    <link rel="canonical" href="@canonicalUrl" />
+
+    @* Open Graph — Facebook / Zalo *@
+    <meta property="og:type" content="@(ViewData["OgType"] as string ?? "website")" />
+    <meta property="og:site_name" content="@brandName" />
+    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:title" content="@ogTitle" />
+    <meta property="og:description" content="@ogDescription" />
+    <meta property="og:image" content="@ogImageAbsolute" />
+    <meta property="og:url" content="@canonicalUrl" />
+
+    @* Twitter Card *@
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@ogTitle" />
+    <meta name="twitter:description" content="@ogDescription" />
+    <meta name="twitter:image" content="@ogImageAbsolute" />
+
+    <link rel="icon" type="image/svg+xml" href="~/images/logo.svg" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/chat-widget.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ban_link_kien_PC.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="ta-topbar">
+        <div class="ta-container ta-topbar-inner">
+            <span><i class="bi bi-telephone-fill"></i> Hotline: <strong>076.893.6043</strong></span>
+            <span><i class="bi bi-geo-alt-fill"></i> Showroom Hà Nội &amp; TP.HCM</span>
+            <span><i class="bi bi-truck"></i> Giao hàng toàn quốc · COD</span>
+        </div>
+    </div>
+
+    <header class="ta-header">
+        <div class="ta-container ta-header-inner">
+            <button class="ta-hamburger" type="button" id="taMenuToggle" aria-label="Mở menu">
+                <i class="bi bi-list"></i>
+                <i class="bi bi-x-lg"></i>
+            </button>
+
+            <a class="ta-brand" asp-controller="Home" asp-action="Index">
+                <img src="~/images/logo.svg" alt="Tech Arena" />
+                <span class="ta-brand-text">TECH <span>ARENA</span></span>
+            </a>
+
+            <nav class="ta-nav" aria-label="Điều hướng chính">
+                <a asp-controller="BuildPc" asp-action="Index" class="@(currentController == "BuildPc" ? "active" : "")">PC Builder</a>
+                <a asp-controller="Catalog" asp-action="Index" class="@(currentController == "Catalog" ? "active" : "")">Sản phẩm</a>
+                <a asp-controller="Catalog" asp-action="Index" asp-route-CategoryCode="CPU">Linh kiện</a>
+                <a asp-controller="Catalog" asp-action="Index" asp-route-AccessoryOnly="true">Phụ kiện</a>
+                <a href="/Tra-cuu-don-hang">Theo dõi đơn</a>
+                <a asp-controller="Home" asp-action="Index" asp-fragment="featured">Khuyến mãi</a>
+                <a asp-controller="Home" asp-action="Index" asp-fragment="showroom">Tin tức</a>
+            </nav>
+
+            <div class="ta-header-actions">
+                <button class="ta-icon-btn" type="button" id="taSearchToggle" aria-label="Tìm kiếm"><i class="bi bi-search"></i></button>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="dropdown">
+                        <button class="ta-icon-btn" type="button" id="notifyMenu" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo">
+                            <i class="bi bi-bell"></i>
+                            @if (headerNotifyCount > 0)
+                            {
+                                <span class="badge rounded-pill bg-danger">@(headerNotifyCount > 99 ? "99+" : headerNotifyCount.ToString())</span>
+                            }
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end ttg-notify-menu" aria-labelledby="notifyMenu">
+                            <li class="dropdown-header fw-bold">Thông báo</li>
+                            @if (headerNotifyItems.Count == 0)
+                            {
+                                <li><span class="dropdown-item-text text-muted">Chưa có thông báo mới.</span></li>
+                            }
+                            else
+                            {
+                                @foreach (var item in headerNotifyItems)
+                                {
+                                    <li>
+                                        @if (!string.IsNullOrWhiteSpace(item.Url))
+                                        {
+                                            <a class="dropdown-item ttg-notify-item" href="@item.Url">
+                                                @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                                {
+                                                    <img class="ttg-notify-thumb" src="@item.ImageUrl" alt="@item.Title" />
+                                                }
+                                                <span class="ttg-notify-text">
+                                                    <strong>@item.Title</strong>
+                                                    <small>@item.Message</small>
+                                                    <span>@item.CreatedAtUtc.ToLocalTime().ToString("HH:mm dd/MM")</span>
+                                                </span>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="dropdown-item-text ttg-notify-item">
+                                                @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                                {
+                                                    <img class="ttg-notify-thumb" src="@item.ImageUrl" alt="@item.Title" />
+                                                }
+                                                <span class="ttg-notify-text">
+                                                    <strong>@item.Title</strong>
+                                                    <small>@item.Message</small>
+                                                    <span>@item.CreatedAtUtc.ToLocalTime().ToString("HH:mm dd/MM")</span>
+                                                </span>
+                                            </span>
+                                        }
+                                    </li>
+                                }
+                            }
+                            <li><hr class="dropdown-divider" /></li>
+                            <li class="px-3 py-2">
+                                <form asp-controller="Catalog" asp-action="ClearNotifications" method="post" class="d-flex flex-column gap-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="returnUrl" value="@currentReturnUrl" />
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="clearNotifyAll" name="clearAll" value="true" checked />
+                                        <label class="form-check-label small" for="clearNotifyAll">Xóa tất cả thông báo</label>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Áp dụng</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="ta-icon-btn" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false" title="Tài khoản"><i class="bi bi-person"></i></button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
+                            <li class="dropdown-header">@User.Identity!.Name</li>
+                            <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Hồ sơ</a></li>
+                            <li><a class="dropdown-item" asp-controller="Account" asp-action="Loyalty">Điểm tích lũy</a></li>
+                            <li><a class="dropdown-item" asp-controller="Warranty" asp-action="Index">Bảo hành</a></li>
+                            <li><a class="dropdown-item" asp-controller="Account" asp-action="Orders">Đơn hàng của tôi</a></li>
+                            @if (string.Equals(User.Identity?.Name, "admin", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">Admin dashboard</a></li>
+                            }
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="px-3">
+                                    <button type="submit" class="btn btn-link p-0 ttg-logout-btn">Đăng xuất</button>
+                                    @Html.AntiForgeryToken()
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <a class="ta-icon-btn" asp-controller="Account" asp-action="Login" title="Đăng nhập"><i class="bi bi-person"></i></a>
+                }
+
+                <div class="ta-cart-wrap">
+                    @await Component.InvokeAsync("CartSummary")
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="ta-mobile-nav" id="taMobileNav" aria-label="Menu di động">
+        <a asp-controller="BuildPc" asp-action="Index">PC Builder</a>
+        <a asp-controller="Catalog" asp-action="Index">Sản phẩm</a>
+        <a asp-controller="Catalog" asp-action="Index" asp-route-CategoryCode="CPU">Linh kiện</a>
+        <a asp-controller="Catalog" asp-action="Index" asp-route-AccessoryOnly="true">Phụ kiện</a>
+        <a asp-controller="Home" asp-action="Index" asp-fragment="featured">Khuyến mãi</a>
+        <a asp-controller="Home" asp-action="Index" asp-fragment="showroom">Tin tức</a>
+        <a asp-controller="Cart" asp-action="Index">Giỏ hàng</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-controller="Account" asp-action="Profile">Hồ sơ</a>
+            <a asp-controller="Account" asp-action="Loyalty">Điểm</a>
+            <a asp-controller="Warranty" asp-action="Index">Bảo hành</a>
+            <a asp-controller="Account" asp-action="Orders">Đơn hàng</a>
+        }
+        else
+        {
+            <a asp-controller="Account" asp-action="Login">Đăng nhập</a>
+            <a asp-controller="Account" asp-action="Register">Đăng ký</a>
+        }
+    </nav>
+
+    <div class="ta-search-overlay" id="taSearchOverlay">
+        <div class="ta-search-panel">
+            <form asp-controller="Catalog" asp-action="Index" method="get" role="search" id="headerSearchForm" autocomplete="off">
+                <div class="mb-2">
+                    <select class="form-select" aria-label="Danh mục" name="CategoryCode" id="headerSearchCategory">
+                        <option value="">Tất cả danh mục</option>
+                        <option value="PC_PREBUILT">PC Build Sẵn</option>
+                        <option value="PC_WORKSTATION">PC Workstation 2D 3D</option>
+                        <option value="CPU">CPU</option>
+                        <option value="MAINBOARD">Mainboard</option>
+                        <option value="RAM">RAM</option>
+                        <option value="GPU">GPU</option>
+                        <option value="SSD">SSD</option>
+                        <option value="CASE">Case</option>
+                        <option value="PSU">Nguồn (PSU)</option>
+                        <option value="MONITOR">Màn hình</option>
+                        <option value="ACCESSORY">Phụ kiện</option>
+                    </select>
+                </div>
+                <div style="position:relative">
+                    <input class="form-control" type="search" placeholder="Tìm kiếm sản phẩm..." aria-label="Search" name="Keyword" id="headerSearchKeyword" />
+                    <div class="ttg-search-suggest d-none" id="headerSearchSuggest"></div>
+                </div>
+                <button class="btn btn-primary mt-2 w-100" type="submit">Tìm kiếm</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="ta-main-wrap">
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="site-footer">
+        <div class="ta-container py-5">
+            <div class="footer-grid">
+                <div>
+                    <h5>TECH ARENA</h5>
+                    <p class="mb-2">Hiệu năng đỉnh cao — trải nghiệm xứng tầm. Chuyên cung cấp PC gaming, workstation và linh kiện chính hãng.</p>
+                    <p class="mb-1"><strong>Hotline:</strong> 076.893.6043</p>
+                    <p class="mb-1"><strong>Email:</strong> techarena.support@gmail.com</p>
+                </div>
+                <div>
+                    <h6>Danh mục</h6>
+                    <ul>
+                        <li><a asp-controller="Catalog" asp-action="Index" asp-route-CategoryCode="PC_PREBUILT">PC Gaming</a></li>
+                        <li><a asp-controller="Catalog" asp-action="Index" asp-route-CategoryCode="PC_WORKSTATION">Workstation</a></li>
+                        <li><a asp-controller="Catalog" asp-action="Index" asp-route-CategoryCode="CPU">Linh kiện</a></li>
+                        <li><a asp-controller="BuildPc" asp-action="Index">Build PC</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h6>Tài khoản</h6>
+                    <ul>
+                        <li><a asp-controller="Account" asp-action="Login">Đăng nhập</a></li>
+                        <li><a asp-controller="Account" asp-action="Register">Đăng ký</a></li>
+                        <li><a asp-controller="Account" asp-action="ForgotPassword">Quên mật khẩu</a></li>
+                        <li><a asp-controller="Cart" asp-action="Index">Giỏ hàng</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h6>Showroom</h6>
+                    <p class="mb-1">HN: Đống Đa, Hà Nội</p>
+                    <p class="mb-1">HCM: Quận 10, TP. HCM</p>
+                    <a asp-controller="Home" asp-action="Privacy">Chính sách bảo mật</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; 2026 Tech Arena. Bảo lưu mọi quyền.</span>
+                <span>Chính hãng · Bảo hành uy tín · Hỗ trợ kỹ thuật 24/7</span>
+            </div>
+        </div>
+    </footer>
+
+    <button class="ta-chat-toggle" type="button" id="taChatToggle" aria-label="Chat với trợ lý AI">
+        <i class="bi bi-chat-dots-fill"></i>
+    </button>
+    <div class="ta-chat-panel" id="taChatPanel" role="dialog" aria-label="Trợ lý AI Tech Arena">
+        <div class="ta-chat-header">
+            <div>
+                <strong>Trợ lý AI Tech Arena</strong>
+                <small>Hỏi đáp mọi thứ về PC &amp; linh kiện</small>
+            </div>
+            <button class="ta-chat-close" type="button" id="taChatClose" aria-label="Đóng chat"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="ta-chat-messages" id="taChatMessages">
+            <div class="ta-chat-msg bot">
+                <div class="ta-chat-bubble">Xin chào! Mình là trợ lý AI của Tech Arena. Bạn cần tư vấn PC, linh kiện hay muốn hỏi gì cứ nhắn nhé!</div>
+            </div>
+        </div>
+        <form class="ta-chat-form" id="taChatForm" autocomplete="off">
+            <input type="text" id="taChatInput" placeholder="Nhập tin nhắn..." maxlength="1000" />
+            <button type="submit" aria-label="Gửi"><i class="bi bi-send-fill"></i></button>
+        </form>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/chat-widget.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

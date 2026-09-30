@@ -1,0 +1,60 @@
+@model IReadOnlyList<ban_link_kien_PC.Controllers.CustomerWarrantyRow>
+@{
+    ViewData["Title"] = "Bảo hành của tôi";
+}
+
+<div class="ta-container py-4 page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Yêu cầu bảo hành</h2>
+        <a class="btn btn-primary btn-sm" asp-action="Create">+ Tạo yêu cầu</a>
+    </div>
+
+    @if (TempData["ProfileInfo"] is string info)
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    @if (Model.Count == 0)
+    {
+        <div class="alert alert-info">Bạn chưa có yêu cầu bảo hành. Chỉ áp dụng cho đơn đã giao / hoàn thành.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã</th>
+                        <th>Đơn</th>
+                        <th>Sản phẩm</th>
+                        <th>Mô tả</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày gửi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td>#@r.WarrantyClaimId</td>
+                        <td>#@r.OrderId</td>
+                        <td>
+                            <div>@r.ProductName</div>
+                            <div class="small text-muted">@r.Sku</div>
+                        </td>
+                        <td>
+                            <div>@r.IssueDescription</div>
+                            @if (!string.IsNullOrWhiteSpace(r.AdminNote))
+                            {
+                                <div class="small text-muted mt-1">Admin: @r.AdminNote</div>
+                            }
+                        </td>
+                        <td><span class="badge @r.StatusBadgeClass">@r.StatusDisplay</span></td>
+                        <td class="small">@r.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

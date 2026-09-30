@@ -1,0 +1,144 @@
+.ta-chat-toggle {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 1050;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: #d92332;
+  color: #fff;
+  font-size: 1.5rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .25);
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+
+.ta-chat-toggle:hover {
+  transform: scale(1.06);
+}
+
+.ta-chat-panel {
+  position: fixed;
+  right: 22px;
+  bottom: 90px;
+  z-index: 1050;
+  width: min(360px, calc(100vw - 44px));
+  height: 480px;
+  max-height: calc(100vh - 130px);
+  display: none;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .3);
+}
+
+.ta-chat-panel.open {
+  display: flex;
+}
+
+.ta-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #14161f;
+  color: #fff;
+}
+
+.ta-chat-header strong {
+  font-size: .95rem;
+}
+
+.ta-chat-header small {
+  display: block;
+  opacity: .7;
+  font-size: .75rem;
+}
+
+.ta-chat-close {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.ta-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f5f6f8;
+}
+
+.ta-chat-msg {
+  display: flex;
+}
+
+.ta-chat-msg.user {
+  justify-content: flex-end;
+}
+
+.ta-chat-bubble {
+  max-width: 82%;
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: .88rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ta-chat-msg.user .ta-chat-bubble {
+  background: #d92332;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.ta-chat-msg.bot .ta-chat-bubble {
+  background: #fff;
+  color: #222;
+  border: 1px solid #e5e7eb;
+  border-bottom-left-radius: 4px;
+}
+
+.ta-chat-msg.typing .ta-chat-bubble {
+  color: #888;
+  font-style: italic;
+}
+
+.ta-chat-form {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.ta-chat-form input {
+  flex: 1;
+  border: 1px solid #d5d8dd;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: .88rem;
+  outline: none;
+}
+
+.ta-chat-form input:focus {
+  border-color: #d92332;
+}
+
+.ta-chat-form button {
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  background: #d92332;
+  color: #fff;
+  cursor: pointer;
+}

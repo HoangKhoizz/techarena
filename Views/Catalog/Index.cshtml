@@ -1,0 +1,219 @@
+@model ban_link_kien_PC.Domain.Catalog.CatalogPageViewModel
+@{
+    ViewData["Title"] = "Danh mục sản phẩm";
+}
+
+<div class="ta-container catalog-page py-4">
+    <div class="catalog-head mb-3">
+        <h2 class="page-title mb-1">Danh mục sản phẩm</h2>
+        <p class="text-muted mb-0">Lọc sản phẩm theo giá, thương hiệu, CPU, RAM, GPU, ổ cứng và phụ kiện.</p>
+    </div>
+
+    <div class="catalog-layout">
+        <aside class="catalog-filter">
+            <form method="get" asp-action="Index" class="catalog-filter-form">
+                <h5 class="mb-3">Bộ lọc chi tiết</h5>
+
+                <div class="mb-3">
+                    <label class="form-label">Danh mục</label>
+                    <select class="form-select" name="CategoryCode">
+                        <option value="">-- Tất cả danh mục --</option>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            if (string.Equals(Model.Filter.CategoryCode, cat.Code, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@cat.Code" selected="selected">@cat.DisplayName</option>
+                            }
+                            else
+                            {
+                                <option value="@cat.Code">@cat.DisplayName</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Từ khóa sản phẩm</label>
+                    <input type="text" class="form-control" name="Keyword" value="@Model.Filter.Keyword" placeholder="Tên, SKU, thương hiệu..." />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Giá từ (VND)</label>
+                    <input type="number" min="0" class="form-control" name="MinPriceVnd" value="@Model.Filter.MinPriceVnd" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Giá đến (VND)</label>
+                    <input type="number" min="0" class="form-control" name="MaxPriceVnd" value="@Model.Filter.MaxPriceVnd" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Thương hiệu</label>
+                    <select class="form-select" name="Brand">
+                        <option value="">-- Tất cả --</option>
+                        @foreach (var brand in Model.Brands)
+                        {
+                            if (string.Equals(Model.Filter.Brand, brand, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@brand" selected="selected">@brand</option>
+                            }
+                            else
+                            {
+                                <option value="@brand">@brand</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Dòng CPU</label>
+                    <select class="form-select" name="CpuLine">
+                        <option value="">-- Tất cả --</option>
+                        @foreach (var cpu in Model.CpuLines)
+                        {
+                            if (string.Equals(Model.Filter.CpuLine, cpu, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@cpu" selected="selected">@cpu</option>
+                            }
+                            else
+                            {
+                                <option value="@cpu">@cpu</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Dung lượng RAM</label>
+                    <select class="form-select" name="RamCapacityGb">
+                        <option value="">-- Tất cả --</option>
+                        @foreach (var ram in Model.RamCapacitiesGb)
+                        {
+                            if (Model.Filter.RamCapacityGb == ram)
+                            {
+                                <option value="@ram" selected="selected">@ram GB</option>
+                            }
+                            else
+                            {
+                                <option value="@ram">@ram GB</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">GPU</label>
+                    <select class="form-select" name="GpuLine">
+                        <option value="">-- Tất cả --</option>
+                        @foreach (var gpu in Model.GpuLines)
+                        {
+                            if (string.Equals(Model.Filter.GpuLine, gpu, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@gpu" selected="selected">@gpu</option>
+                            }
+                            else
+                            {
+                                <option value="@gpu">@gpu</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Ổ cứng</label>
+                    <select class="form-select" name="Storage">
+                        <option value="">-- Tất cả --</option>
+                        @foreach (var storage in Model.StorageValues)
+                        {
+                            if (string.Equals(Model.Filter.Storage, storage, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@storage" selected="selected">@storage</option>
+                            }
+                            else
+                            {
+                                <option value="@storage">@storage</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="form-check mb-3">
+                    @if (Model.Filter.AccessoryOnly)
+                    {
+                        <input class="form-check-input" type="checkbox" value="true" id="AccessoryOnly" name="AccessoryOnly" checked="checked" />
+                    }
+                    else
+                    {
+                        <input class="form-check-input" type="checkbox" value="true" id="AccessoryOnly" name="AccessoryOnly" />
+                    }
+                    <label class="form-check-label" for="AccessoryOnly">
+                        Khác (chỉ phụ kiện)
+                    </label>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Lọc sản phẩm</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Xóa bộ lọc</a>
+                </div>
+            </form>
+        </aside>
+
+        <section class="catalog-results">
+            <div class="catalog-result-head">
+                <strong>Tìm thấy @Model.Products.Count sản phẩm</strong>
+            </div>
+
+            @if (Model.Products.Count == 0)
+            {
+                <div class="alert alert-warning mt-3">
+                    Không có sản phẩm phù hợp với tiêu chí hiện tại.
+                </div>
+            }
+            else
+            {
+                <div class="catalog-results-scroll mt-3">
+                    <div class="catalog-grid">
+                        @foreach (var item in Model.Products)
+                        {
+                            <article class="catalog-card">
+                                <div class="catalog-thumb">
+                                    <a asp-route="ProductDetail" asp-route-slug="@SeoSlug.From(item.Name)" asp-route-id="@item.ComponentId">
+                                        <img class="ta-product-img" src="@item.ImageUrl" alt="@item.Name" loading="lazy" />
+                                    </a>
+                                </div>
+                                <div class="catalog-card-top">
+                                    <span class="badge text-bg-light">@item.CategoryName</span>
+                                    <span class="small text-muted">@item.Sku</span>
+                                </div>
+                                <h6 class="catalog-name">
+                                    <a class="catalog-name-link" asp-route="ProductDetail" asp-route-slug="@SeoSlug.From(item.Name)" asp-route-id="@item.ComponentId">@item.Name</a>
+                                </h6>
+                                <div class="small text-muted mb-2">Thương hiệu: @(item.BrandName ?? "N/A")</div>
+                                <div class="catalog-meta">
+                                    <strong class="text-danger">@item.PriceVnd.ToString("N0") đ</strong>
+                                    @if (item.IsSoldOut && item.IsHot)
+                                    {
+                                        <span class="badge text-bg-danger">Cháy hàng</span>
+                                    }
+                                    else if (item.IsHot)
+                                    {
+                                        <span class="badge ta-tag-hot">Hot</span>
+                                        <span class="small">Kho: @item.StockQty</span>
+                                    }
+                                    else
+                                    {
+                                        @if (item.IsBestSeller)
+                                        {
+                                            <span class="badge text-bg-success">Bán chạy</span>
+                                        }
+                                        <span class="small">Kho: @item.StockQty</span>
+                                    }
+                                </div>
+                            </article>
+                        }
+                    </div>
+                </div>
+            }
+        </section>
+    </div>
+</div>

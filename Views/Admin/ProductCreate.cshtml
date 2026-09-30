@@ -1,0 +1,78 @@
+@model ban_link_kien_PC.Controllers.AdminProductEditViewModel
+@{
+    ViewData["Title"] = "Thêm sản phẩm";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell">
+    <h2 class="mb-3">Thêm sản phẩm</h2>
+    <form asp-action="ProductCreate" method="post" enctype="multipart/form-data" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div class="col-md-6">
+            <label class="form-label">SKU</label>
+            <input asp-for="Sku" class="form-control" />
+            <span asp-validation-for="Sku" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Tên sản phẩm</label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Danh mục</label>
+            <select asp-for="ComponentCategoryId" asp-items="Model.Categories" class="form-select"></select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Thương hiệu</label>
+            <select asp-for="BrandId" asp-items="Model.Brands" class="form-select">
+                <option value="">-- Không chọn --</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Giá (VND)</label>
+            <input asp-for="PriceVnd" class="form-control" type="number" min="0" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Tồn kho</label>
+            <input asp-for="StockQty" class="form-control" type="number" min="0" />
+        </div>
+        <div class="col-md-8">
+            <label class="form-label">Ảnh đại diện</label>
+            <input asp-for="ImageUpload" type="file" name="ImageUpload" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" />
+            <span asp-validation-for="ImageUpload" class="text-danger small"></span>
+            <div class="form-text">JPG/PNG/WebP/GIF — tối đa 5 MB. Lưu vào /images/products/</div>
+            <img id="imagePreview" class="mt-2 d-none" alt="Preview" style="max-width:180px;max-height:180px;object-fit:contain;border:1px solid #dee2e6;border-radius:8px;background:#fff;padding:4px;" />
+        </div>
+        <div class="col-md-8 d-flex align-items-end gap-4 flex-wrap">
+            <div class="form-check">
+                <input asp-for="IsActive" class="form-check-input" />
+                <label class="form-check-label" asp-for="IsActive">Kích hoạt</label>
+            </div>
+            <div class="form-check">
+                <input asp-for="IsHot" class="form-check-input" />
+                <label class="form-check-label" asp-for="IsHot">Hàng Hot (Qty=0 hiện «Cháy hàng»)</label>
+            </div>
+            <div class="form-check">
+                <input asp-for="IsBestSeller" class="form-check-input" />
+                <label class="form-check-label" asp-for="IsBestSeller">Bán chạy</label>
+            </div>
+        </div>
+        <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Lưu</button>
+            <a class="btn btn-outline-secondary" asp-action="Products">Quay lại</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+    document.querySelector('input[name="ImageUpload"]')?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      const img = document.getElementById('imagePreview');
+      if (!file || !img) return;
+      img.src = URL.createObjectURL(file);
+      img.classList.remove('d-none');
+    });
+    </script>
+}

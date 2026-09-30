@@ -1,0 +1,93 @@
+@model ban_link_kien_PC.Controllers.CskhReviewsPageVm
+@{
+    ViewData["Title"] = "Đánh giá sản phẩm";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell staff-admin">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Đánh giá sản phẩm</h2>
+        <div class="btn-group btn-group-sm">
+            <a class="btn @(Model.StatusFilter=="PENDING"?"btn-primary":"btn-outline-primary")" asp-action="Reviews" asp-route-status="PENDING">Chờ duyệt</a>
+            <a class="btn @(Model.StatusFilter=="APPROVED"?"btn-primary":"btn-outline-primary")" asp-action="Reviews" asp-route-status="APPROVED">Đã duyệt</a>
+            <a class="btn @(Model.StatusFilter=="ALL"?"btn-primary":"btn-outline-primary")" asp-action="Reviews" asp-route-status="ALL">Tất cả</a>
+        </div>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info)
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    <div class="card page-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 staff-table">
+                    <thead>
+                        <tr>
+                            <th>SP</th>
+                            <th>Khách</th>
+                            <th>Sao</th>
+                            <th>Nhận xét</th>
+                            <th>Ngày</th>
+                            <th>TT</th>
+                            <th style="width:200px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Rows.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">Không có đánh giá.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var r in Model.Rows)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold small">@r.ProductName</div>
+                                    <div class="text-muted small">@r.Sku</div>
+                                </td>
+                                <td>@r.CustomerName</td>
+                                <td>@r.Rating★</td>
+                                <td style="max-width:280px">@r.Comment</td>
+                                <td class="small">@r.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (r.IsApproved)
+                                    { <span class="badge text-bg-success">Đã duyệt</span> }
+                                    else
+                                    { <span class="badge text-bg-warning">Chờ duyệt</span> }
+                                </td>
+                                <td class="text-nowrap">
+                                    @if (!r.IsApproved)
+                                    {
+                                        <form asp-action="ApproveReview" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@r.ReviewId" />
+                                            <button type="submit" class="btn btn-sm btn-success">Duyệt</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="RejectReview" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@r.ReviewId" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Ẩn</button>
+                                        </form>
+                                    }
+                                    <form asp-action="DeleteReview" method="post" class="d-inline"
+                                          onsubmit="return confirm('Xóa đánh giá này?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@r.ReviewId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

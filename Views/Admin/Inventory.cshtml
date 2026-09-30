@@ -1,0 +1,102 @@
+@model ban_link_kien_PC.Controllers.AdminInventoryViewModel
+@{
+    ViewData["Title"] = "Quản lý tồn kho";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Quản lý tồn kho</h2>
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">Dashboard</a>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    <form method="get" class="row g-2 mb-3">
+        <input type="hidden" name="stock" value="@Model.StockFilter" />
+        <div class="col-md-5">
+            <input name="keyword" value="@Model.Keyword" class="form-control" placeholder="Tìm theo tên hoặc SKU..." />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" type="submit">Tìm</button>
+        </div>
+    </form>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a class="btn btn-sm @(string.IsNullOrWhiteSpace(Model.StockFilter) ? "btn-primary" : "btn-outline-primary")" asp-action="Inventory">Tất cả</a>
+        <a class="btn btn-sm @(Model.StockFilter == "out" ? "btn-primary" : "btn-outline-primary")" asp-action="Inventory" asp-route-stock="out">Hết hàng</a>
+        <a class="btn btn-sm @(Model.StockFilter == "low" ? "btn-primary" : "btn-outline-primary")" asp-action="Inventory" asp-route-stock="low">Sắp hết</a>
+    </div>
+
+    @if (Model.StockFilter == "out")
+    {
+        <div class="alert alert-warning py-2">Đang lọc: sản phẩm hết hàng (tồn = 0).</div>
+    }
+    else if (Model.StockFilter == "low")
+    {
+        <div class="alert alert-warning py-2">Đang lọc: sản phẩm sắp hết (tồn 1–5).</div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Danh mục</th>
+                    <th class="text-center">Tồn kho</th>
+                    <th class="text-center">Kích hoạt</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="5" class="text-muted">Không có dữ liệu tồn kho.</td></tr>
+            }
+            else
+            {
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@row.Name</div>
+                            <div class="small text-muted">@row.Sku</div>
+                        </td>
+                        <td>@row.CategoryName</td>
+                        <td class="text-center">
+                            @if (row.StockQty <= 0)
+                            {
+                                <span class="badge text-bg-danger">0</span>
+                            }
+                            else if (row.StockQty <= 5)
+                            {
+                                <span class="badge text-bg-warning">@row.StockQty</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-success">@row.StockQty</span>
+                            }
+                        </td>
+                        <td class="text-center">@(row.IsActive ? "ON" : "OFF")</td>
+                        <td>
+                            <form asp-action="UpdateStock" method="post" class="d-flex align-items-center gap-2">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="componentId" value="@row.ComponentId" />
+                                <input name="stockQty" type="number" min="0" class="form-control form-control-sm" style="max-width:100px" value="@row.StockQty" />
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" name="isActive" value="true" checked="@row.IsActive" />
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary" type="submit">Cập nhật</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+

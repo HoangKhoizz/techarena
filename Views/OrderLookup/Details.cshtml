@@ -1,0 +1,125 @@
+@model ban_link_kien_PC.Controllers.OrderLookupDetailViewModel
+@{
+    ViewData["Title"] = $"Chi tiết đơn #{Model.OrderId}";
+}
+
+<div class="ta-container py-4">
+    <div class="page-shell">
+        @if (TempData["LookupInfo"] is string info)
+        {
+            <div class="alert alert-success py-2">@info</div>
+        }
+        @if (TempData["LookupError"] is string err)
+        {
+            <div class="alert alert-danger py-2">@err</div>
+        }
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h2 class="page-title mb-1">Đơn #@Model.OrderId</h2>
+                <span class="badge @Model.StatusBadgeClass">@Model.StatusDisplay</span>
+            </div>
+            <a class="btn btn-outline-secondary" asp-action="Index" asp-route-phone="@Model.LookupPhone">← Theo dõi khác</a>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card page-card h-100">
+                    <div class="card-header fw-semibold">Thông tin giao hàng</div>
+                    <div class="card-body">
+                        <div><strong>Người nhận:</strong> @Model.ReceiverName</div>
+                        <div><strong>SĐT:</strong> @Model.ReceiverPhone</div>
+                        <div><strong>Địa chỉ:</strong> @Model.ShippingAddress</div>
+                        <div><strong>Thanh toán:</strong> @Model.PaymentMethodCode</div>
+                        <div><strong>Tổng tiền:</strong> @Model.TotalPriceVnd.ToString("N0") đ</div>
+                        @if (Model.DiscountAmountVnd > 0)
+                        {
+                            <div><strong>Giảm giá:</strong> @Model.DiscountAmountVnd.ToString("N0") đ</div>
+                        }
+                        @if (Model.DeliveredAtUtc is DateTime delivered)
+                        {
+                            <div><strong>Giao lúc:</strong> @delivered.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Model.TransactionId))
+                        {
+                            <div><strong>Mã GD:</strong> @Model.TransactionId</div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Model.RefundTransactionId))
+                        {
+                            <div><strong>Mã hoàn tiền:</strong> @Model.RefundTransactionId</div>
+                        }
+                        <div class="small text-muted mt-2">Đặt lúc @Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card page-card h-100">
+                    <div class="card-header fw-semibold">Thao tác</div>
+                    <div class="card-body">
+                        @if (Model.CanCancel)
+                        {
+                            var confirmMsg = Model.NeedsRefund
+                                ? $"Đơn đã thanh toán {Model.PaymentMethodCode}. Hủy sẽ gọi API hoàn tiền. Tiếp tục?"
+                                : $"Xác nhận hủy đơn #{Model.OrderId}?";
+                            <form asp-action="Cancel" asp-route-id="@Model.OrderId" method="post"
+                                  onsubmit="return confirm('@confirmMsg');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="phone" value="@Model.LookupPhone" />
+                                <button type="submit" class="btn btn-outline-danger">
+                                    @(Model.NeedsRefund ? "Hủy đơn & hoàn tiền" : "Hủy đơn hàng")
+                                </button>
+                            </form>
+                            <p class="small text-muted mt-2 mb-0">
+                                @(Model.NeedsRefund
+                                    ? "Đơn đã PAID — hệ thống sẽ hoàn tiền qua cổng thanh toán trước khi đánh dấu REFUNDED."
+                                    : "Chỉ hủy được khi đơn còn chờ xác nhận / chờ thanh toán / đã thanh toán chưa giao.")
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="text-muted mb-0">Đơn không còn ở trạng thái cho phép hủy (đã giao / đã hoàn tiền / đã hủy).</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card page-card">
+            <div class="card-header fw-semibold">Sản phẩm</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th class="text-center">SL</th>
+                                <th class="text-end">Đơn giá</th>
+                                <th class="text-end">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var line in Model.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@line.Name</div>
+                                    <div class="small text-muted">@line.Sku</div>
+                                </td>
+                                <td class="text-center">@line.Qty</td>
+                                <td class="text-end">@line.UnitPriceVnd.ToString("N0") ₫</td>
+                                <td class="text-end">@((line.UnitPriceVnd * line.Qty).ToString("N0")) ₫</td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">Tổng cộng</th>
+                                <th class="text-end text-danger">@Model.TotalPriceVnd.ToString("N0") ₫</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

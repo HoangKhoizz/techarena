@@ -1,0 +1,108 @@
+@model ban_link_kien_PC.Controllers.AccountOrdersPageViewModel
+@{
+    ViewData["Title"] = "Đơn hàng của tôi";
+    var fromVal = Model.FromDate?.ToString("yyyy-MM-dd") ?? "";
+    var toVal = Model.ToDate?.ToString("yyyy-MM-dd") ?? "";
+}
+
+<div class="page-shell orders-shell">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h2 class="mb-0">Đơn hàng của tôi</h2>
+        <a class="btn btn-sm btn-outline-primary" href="/Tra-cuu-don-hang">Theo dõi theo mã / SĐT</a>
+    </div>
+
+    <div class="order-status-flow mb-3">
+        <span class="badge text-bg-warning">Chờ xác nhận</span>
+        <span class="order-flow-arrow">→</span>
+        <span class="badge text-bg-primary">Đã duyệt</span>
+        <span class="order-flow-arrow">→</span>
+        <span class="badge text-bg-info">Đang giao</span>
+        <span class="order-flow-arrow">→</span>
+        <span class="badge text-bg-success">Hoàn thành / Đã thu</span>
+    </div>
+
+    @if (TempData["AccountOrdersInfo"] is string info)
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+    @if (TempData["AccountOrdersError"] is string err)
+    {
+        <div class="alert alert-danger py-2">@err</div>
+    }
+
+    <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-md-3">
+            <label class="form-label small mb-1">Từ ngày</label>
+            <input type="date" name="fromDate" value="@fromVal" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small mb-1">Đến ngày</label>
+            <input type="date" name="toDate" value="@toVal" class="form-control" />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" type="submit">Lọc</button>
+            <a class="btn btn-outline-secondary" asp-action="Orders">Tất cả</a>
+        </div>
+    </form>
+
+    @if (Model.Orders.Count == 0)
+    {
+        <div class="alert alert-info mb-0">
+            Không có đơn trong khoảng đã chọn. Hãy <a asp-controller="Catalog" asp-action="Index">mua sắm</a> hoặc bỏ lọc ngày.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle orders-table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Ngày tạo</th>
+                        <th>Người nhận</th>
+                        <th>Thanh toán</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Tổng tiền</th>
+                        <th style="min-width:180px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var order in Model.Orders)
+                {
+                    <tr>
+                        <td>#@order.OrderId</td>
+                        <td>@order.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@order.ReceiverName</td>
+                        <td>@order.PaymentMethodCode</td>
+                        <td>
+                            <span class="badge orders-status-badge @order.StatusBadgeClass">@order.StatusDisplay</span>
+                        </td>
+                        <td class="text-end fw-semibold">@order.TotalPriceVnd.ToString("N0") đ</td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                <a class="btn btn-sm btn-outline-primary"
+                                   asp-controller="Checkout"
+                                   asp-action="Success"
+                                   asp-route-id="@order.OrderId">
+                                    Chi tiết
+                                </a>
+                                @if (order.CanCancel)
+                                {
+                                    <form asp-action="CancelOrder" method="post"
+                                          onsubmit="return confirm('@(order.NeedsRefund ? "Đơn đã thanh toán online — hủy sẽ hoàn tiền. Tiếp tục?" : $"Hủy đơn #{order.OrderId}?")');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@order.OrderId" />
+                                        <input type="hidden" name="fromDate" value="@fromVal" />
+                                        <input type="hidden" name="toDate" value="@toVal" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Hủy</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

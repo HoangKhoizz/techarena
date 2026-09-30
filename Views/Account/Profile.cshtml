@@ -1,0 +1,134 @@
+@model ban_link_kien_PC.Controllers.ProfileUpdateViewModel
+@{
+    ViewData["Title"] = "Hồ sơ";
+}
+
+<div class="ta-container py-4 page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Hồ sơ khách hàng</h2>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-primary btn-sm" asp-action="Loyalty">Điểm tích lũy</a>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="ChangePassword">Đổi mật khẩu</a>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Orders">Đơn hàng</a>
+        </div>
+    </div>
+
+    @if (TempData["ProfileInfo"] is string info)
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card page-card h-100">
+                <div class="card-header fw-semibold">Hạng thành viên</div>
+                <div class="card-body">
+                    <div class="display-6 mb-1">@Model.LoyaltyPoints</div>
+                    <div class="text-muted small mb-2">điểm tích lũy</div>
+                    <span class="badge text-bg-primary mb-2">@Model.MembershipTierDisplay</span>
+                    <p class="mb-0 small">@Model.BenefitSummary</p>
+                    @if (Model.DiscountPercent > 0)
+                    {
+                        <p class="mb-0 mt-2 small text-success">Giảm giá hạng: <strong>@Model.DiscountPercent.ToString("0.#")%</strong></p>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card page-card">
+                <div class="card-header fw-semibold">Cập nhật thông tin</div>
+                <div class="card-body">
+                    <form asp-action="Profile" method="post" enctype="multipart/form-data" class="row g-3">
+                        @Html.AntiForgeryToken()
+
+                        <div class="col-12">
+                            <div class="profile-avatar-block">
+                                <div class="profile-avatar-wrap">
+                                    <img id="avatarPreview"
+                                         src="@Model.AvatarUrl"
+                                         alt="Avatar"
+                                         class="profile-avatar-img"
+                                         width="112"
+                                         height="112" />
+                                    <label class="profile-avatar-cam" for="AvatarUpload" title="Đổi ảnh đại diện">
+                                        <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Chọn ảnh đại diện</span>
+                                    </label>
+                                    <input asp-for="AvatarUpload"
+                                           id="AvatarUpload"
+                                           class="d-none"
+                                           type="file"
+                                           accept=".jpg,.jpeg,.png,.webp,.gif,image/*" />
+                                </div>
+                                <div class="profile-avatar-meta">
+                                    <div class="fw-semibold">Ảnh đại diện</div>
+                                    <div class="text-muted small">JPG, PNG, WEBP hoặc GIF — tối đa 3 MB</div>
+                                    <span asp-validation-for="AvatarUpload" class="text-danger small d-block"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Tên đăng nhập</label>
+                            <input class="form-control" value="@Model.Username" readonly tabindex="-1" aria-readonly="true" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Email">Email</label>
+                            <input asp-for="Email" class="form-control" type="email" required />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="FullName">Họ tên</label>
+                            <input asp-for="FullName" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="Phone">Số điện thoại</label>
+                            <input asp-for="Phone" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" asp-for="DateOfBirth">Ngày sinh</label>
+                            <input asp-for="DateOfBirth" class="form-control" type="date" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" asp-for="ShippingAddress1">Địa chỉ giao hàng 1</label>
+                            <input asp-for="ShippingAddress1" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" asp-for="ShippingAddress2">Địa chỉ giao hàng 2</label>
+                            <input asp-for="ShippingAddress2" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" asp-for="BankAccountInfo">Tài khoản ngân hàng (nếu có)</label>
+                            <input asp-for="BankAccountInfo" class="form-control" placeholder="Ngân hàng - Số TK - Chủ TK" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var input = document.getElementById('AvatarUpload');
+            var preview = document.getElementById('avatarPreview');
+            if (!input || !preview) return;
+            input.addEventListener('change', function () {
+                var file = input.files && input.files[0];
+                if (!file) return;
+                if (file.size > 3 * 1024 * 1024) {
+                    alert('Ảnh tối đa 3 MB.');
+                    input.value = '';
+                    return;
+                }
+                var url = URL.createObjectURL(file);
+                preview.src = url;
+            });
+        })();
+    </script>
+}

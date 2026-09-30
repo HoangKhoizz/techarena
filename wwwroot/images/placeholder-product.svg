@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none">
+  <rect width="400" height="400" fill="#0c1019"/>
+  <rect x="1" y="1" width="398" height="398" stroke="#00d4ff" stroke-opacity="0.15" stroke-width="2"/>
+  <path d="M120 280 L160 200 L200 240 L240 180 L280 280 Z" stroke="#00d4ff" stroke-opacity="0.35" stroke-width="2" fill="none"/>
+  <circle cx="210" cy="170" r="18" stroke="#00d4ff" stroke-opacity="0.35" stroke-width="2" fill="none"/>
+  <rect x="130" y="290" width="140" height="12" rx="4" fill="#00d4ff" fill-opacity="0.12"/>
+  <text x="200" y="330" text-anchor="middle" fill="#64748b" font-family="system-ui,sans-serif" font-size="13" font-weight="600">TECH ARENA</text>
+</svg>

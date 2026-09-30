@@ -1,0 +1,165 @@
+@model ban_link_kien_PC.Controllers.ShippingLabelViewModel
+@{
+    Layout = null;
+    var qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=" + Uri.EscapeDataString(Model.TrackingNumber);
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tem vận đơn #@Model.OrderId — @Model.TrackingNumber</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+            background: #e5e7eb;
+            color: #111;
+        }
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            padding: 0.75rem;
+            background: #111827;
+        }
+        .toolbar a, .toolbar button {
+            appearance: none;
+            border: 0;
+            border-radius: 6px;
+            padding: 0.45rem 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            color: #111;
+            background: #22d3ee;
+        }
+        .toolbar a.secondary { background: #e5e7eb; }
+        .label-sheet {
+            width: 100mm;
+            min-height: 140mm;
+            margin: 1rem auto;
+            background: #fff;
+            border: 2px solid #111;
+            padding: 10mm 8mm;
+        }
+        .brand {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .provider {
+            margin-top: 2px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .tracking {
+            margin: 10px 0 6px;
+            font-size: 18px;
+            font-weight: 800;
+            font-family: Consolas, "Courier New", monospace;
+            word-break: break-all;
+        }
+        .barcode {
+            height: 42px;
+            margin: 4px 0 10px;
+            background: repeating-linear-gradient(
+                90deg,
+                #111 0,
+                #111 2px,
+                #fff 2px,
+                #fff 3px,
+                #111 3px,
+                #111 5px,
+                #fff 5px,
+                #fff 7px
+            );
+            border: 1px solid #111;
+        }
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            margin-top: 10px;
+        }
+        .meta { flex: 1; font-size: 12px; line-height: 1.45; }
+        .meta strong { display: block; font-size: 13px; margin-bottom: 2px; }
+        .qr { width: 140px; height: 140px; border: 1px solid #111; }
+        .cod {
+            margin-top: 12px;
+            border-top: 2px dashed #111;
+            padding-top: 8px;
+            font-size: 14px;
+            font-weight: 800;
+        }
+        .note { margin-top: 8px; font-size: 11px; color: #374151; }
+        .foot {
+            margin-top: 14px;
+            font-size: 10px;
+            color: #6b7280;
+            text-align: center;
+        }
+        @@media print {
+            body { background: #fff; }
+            .toolbar { display: none !important; }
+            .label-sheet {
+                margin: 0;
+                border-width: 1.5px;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar no-print">
+        <button type="button" onclick="window.print()">In tem</button>
+        <a class="secondary" href="/Admin/Packing">Quay lại đóng gói</a>
+        <a class="secondary" href="/Admin/Orders?tab=shipping">Đơn đang giao</a>
+    </div>
+
+    <div class="label-sheet">
+        <div class="brand">Tech Arena</div>
+        <div class="provider">@Model.ProviderDisplay</div>
+        <div class="tracking">@Model.TrackingNumber</div>
+        <div class="barcode" title="@Model.TrackingNumber" aria-hidden="true"></div>
+
+        <div class="row">
+            <div class="meta">
+                <strong>Người nhận</strong>
+                @Model.ReceiverName<br />
+                SĐT: @Model.ReceiverPhone<br />
+                @Model.ShippingAddress
+            </div>
+            <img class="qr" src="@qrUrl" alt="QR @Model.TrackingNumber" width="140" height="140" />
+        </div>
+
+        <div class="cod">
+            Thu hộ (COD): @Model.CodAmountVnd.ToString("N0") đ
+            <div style="font-size:11px;font-weight:600;margin-top:2px">
+                Thanh toán: @Model.PaymentMethodCode · Đơn #@Model.OrderId · Tổng: @Model.TotalPriceVnd.ToString("N0") đ
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Note))
+        {
+            <div class="note"><strong>Ghi chú:</strong> @Model.Note</div>
+        }
+
+        <div class="foot">
+            In lúc @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+            @if (Model.ShippedAtUtc is DateTime shipped)
+            {
+                <text> · Tạo vận đơn @shipped.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</text>
+            }
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function () {
+            setTimeout(function () { window.print(); }, 350);
+        });
+    </script>
+</body>
+</html>

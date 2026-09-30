@@ -1,0 +1,149 @@
+@model ban_link_kien_PC.Controllers.CheckoutPageViewModel
+@{
+    ViewData["Title"] = "Thanh toán";
+    var payCod = string.Equals(Model.Form.PaymentMethodCode, "COD", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(Model.Form.PaymentMethodCode);
+    var payMomo = string.Equals(Model.Form.PaymentMethodCode, "MOMO", StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="ta-container py-4">
+<div class="page-shell checkout-shell">
+    <div class="page-head mb-3">
+        <h2 class="page-title mb-1">Thanh toán đơn hàng</h2>
+        <p class="text-muted mb-0">Không bắt buộc đăng nhập — điền đủ họ tên, SĐT và địa chỉ để đặt hàng (khách vãng lai).</p>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <div asp-validation-summary="ModelOnly"></div>
+            Vui lòng kiểm tra lại thông tin đặt hàng.
+        </div>
+    }
+    @if (TempData["CheckoutError"] is string cerr)
+    {
+        <div class="alert alert-warning">@cerr</div>
+    }
+    @if (Model.SkippedOutOfStockItems > 0)
+    {
+        <div class="alert alert-warning">
+            Có @Model.SkippedOutOfStockItems sản phẩm hết hàng/không đủ tồn kho đã được loại khỏi đơn thanh toán.
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card page-card">
+                <div class="card-header fw-semibold">Thông tin nhận hàng</div>
+                <div class="card-body">
+                    <form asp-action="PlaceOrder" method="post" id="checkoutForm">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label asp-for="Form.ReceiverName" class="form-label">Họ tên người nhận</label>
+                            <input asp-for="Form.ReceiverName" class="form-control" required />
+                            <span asp-validation-for="Form.ReceiverName" class="text-danger small"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Form.ReceiverPhone" class="form-label">Số điện thoại</label>
+                            <input asp-for="Form.ReceiverPhone" class="form-control" required inputmode="tel" />
+                            <span asp-validation-for="Form.ReceiverPhone" class="text-danger small"></span>
+                            <div class="form-text">Dùng SĐT này để <a href="/Tra-cuu-don-hang">tra cứu / hủy đơn</a> sau này.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Form.ReceiverEmail" class="form-label">Email (tuỳ chọn)</label>
+                            <input asp-for="Form.ReceiverEmail" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Form.ShippingAddress" class="form-label">Địa chỉ giao hàng</label>
+                            <textarea asp-for="Form.ShippingAddress" rows="3" class="form-control" required></textarea>
+                            <span asp-validation-for="Form.ShippingAddress" class="text-danger small"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Form.Note" class="form-label">Ghi chú (tuỳ chọn)</label>
+                            <textarea asp-for="Form.Note" rows="2" class="form-control"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Form.PromoCode" class="form-label">Mã khuyến mãi</label>
+                            <div class="input-group">
+                                <input asp-for="Form.PromoCode" class="form-control text-uppercase" placeholder="VD: WELCOME10" />
+                                <button type="submit" class="btn btn-outline-primary"
+                                        formaction="@Url.Action("ApplyPromo")" formmethod="post">Áp dụng</button>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Model.PromoError))
+                            {
+                                <div class="text-danger small mt-1">@Model.PromoError</div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(Model.PromoSuccess))
+                            {
+                                <div class="text-success small mt-1">@Model.PromoSuccess</div>
+                            }
+                            else
+                            {
+                                <div class="form-text">Demo: <code>WELCOME10</code> (mọi khách) · <code>GOLD50K</code> (hạng Vàng+)</div>
+                            }
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-block">Phương thức thanh toán</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="Form.PaymentMethodCode" id="payCod" value="COD" @(payCod ? "checked" : null) />
+                                <label class="form-check-label" for="payCod">COD — Thanh toán khi nhận hàng</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="Form.PaymentMethodCode" id="payMomo" value="MOMO" @(payMomo ? "checked" : null) />
+                                <label class="form-check-label" for="payMomo">Ví MoMo (thanh toán online)</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Đặt hàng · @Model.PayableVnd.ToString("N0") đ</button>
+                        <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-secondary ms-2">Quay lại giỏ</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card page-card">
+                <div class="card-header fw-semibold">Đơn hàng của bạn</div>
+                <div class="card-body">
+                    @if (Model.Lines.Count == 0)
+                    {
+                        <div class="text-muted">Giỏ hàng trống.</div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var line in Model.Lines)
+                            {
+                                <li class="list-group-item px-0">
+                                    <div class="fw-semibold">@line.Name</div>
+                                    <div class="small text-muted">@line.Sku · SL @line.Qty</div>
+                                    <div class="text-end">@line.LineTotalVnd.ToString("N0") đ</div>
+                                </li>
+                            }
+                        </ul>
+                        <div class="d-flex justify-content-between mt-3">
+                            <span>Tạm tính</span>
+                            <span>@Model.GrandTotalVnd.ToString("N0") đ</span>
+                        </div>
+                        @if (Model.MembershipDiscountVnd > 0)
+                        {
+                            <div class="d-flex justify-content-between text-success small">
+                                <span>Ưu đãi hạng (@Model.MembershipTierDisplay)</span>
+                                <span>-@Model.MembershipDiscountVnd.ToString("N0") đ</span>
+                            </div>
+                        }
+                        @if (Model.PromoDiscountVnd > 0)
+                        {
+                            <div class="d-flex justify-content-between text-success small">
+                                <span>Mã @Model.AppliedPromoCode</span>
+                                <span>-@Model.PromoDiscountVnd.ToString("N0") đ</span>
+                            </div>
+                        }
+                        <div class="d-flex justify-content-between mt-2 fw-bold border-top pt-2">
+                            <span>Thanh toán</span>
+                            <span class="text-danger">@Model.PayableVnd.ToString("N0") đ</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>

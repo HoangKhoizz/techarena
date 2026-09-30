@@ -1,0 +1,321 @@
+@model ban_link_kien_PC.Models.HomeIndexViewModel
+@{
+    ViewData["Title"] = "Trang chủ";
+}
+
+<section class="ta-hero-wrap">
+    <div class="ta-hero-bg" aria-hidden="true"></div>
+    <div class="ta-container-fluid">
+        <div class="ta-hero">
+            <div class="ta-hero-content">
+                <span class="ta-hero-eyebrow"><i class="bi bi-shield-check"></i> Chính hãng · Bảo hành 36 tháng</span>
+                <h1>PC Gaming &amp; Workstation<br /><em>cấu hình chuẩn, giá minh bạch</em></h1>
+                <p class="ta-hero-sub">
+                    Tự build theo nhu cầu, mua PC lắp sẵn hoặc chọn linh kiện rời.
+                    Tư vấn kỹ thuật miễn phí — giao hàng COD toàn quốc.
+                </p>
+                <div class="ta-hero-cta">
+                    <a class="ta-btn-primary" asp-controller="Catalog" asp-action="Index">Khám phá sản phẩm <i class="bi bi-arrow-right"></i></a>
+                    <a class="ta-btn-outline" asp-controller="BuildPc" asp-action="Index"><i class="bi bi-cpu"></i> PC Builder</a>
+                </div>
+                <div class="ta-trust-badges">
+                    <div class="ta-trust-item">
+                        <span class="ta-trust-icon"><i class="bi bi-shield-check"></i></span>
+                        <span>Bảo hành chính hãng</span>
+                    </div>
+                    <div class="ta-trust-item">
+                        <span class="ta-trust-icon"><i class="bi bi-truck"></i></span>
+                        <span>Miễn phí ship nội thành</span>
+                    </div>
+                    <div class="ta-trust-item">
+                        <span class="ta-trust-icon"><i class="bi bi-headset"></i></span>
+                        <span>Hỗ trợ kỹ thuật 24/7</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ta-hero-visual">
+                <div class="ta-showcase ta-showcase-3d">
+                    <div class="ta-showcase-glow" aria-hidden="true"></div>
+                    <div class="ta-showcase-frame">
+                        <img class="ta-product-img ta-hero-3d-img" src="@Model.HeroImageUrl" alt="PC Gaming 3D Tech Arena" loading="eager" />
+                    </div>
+                    <div class="ta-showcase-tags">
+                        <span class="ta-spec-chip"><i class="bi bi-gpu-card"></i> <strong>RTX 5070</strong></span>
+                        <span class="ta-spec-chip"><i class="bi bi-cpu"></i> <strong>Core Ultra 7</strong></span>
+                        <span class="ta-spec-chip"><i class="bi bi-memory"></i> <strong>DDR5</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="ta-container ta-section-block">
+    <div class="ta-section-label">Danh mục sản phẩm</div>
+    <div class="ta-categories">
+        @foreach (var cat in Model.Categories)
+        {
+            <a class="ta-cat-card" asp-controller="Catalog" asp-action="Index" asp-route-CategoryCode="@cat.CategoryCode">
+                <div class="ta-cat-top">
+                    <div class="ta-cat-icon"><i class="bi @cat.IconClass"></i></div>
+                    <div class="ta-cat-thumb">
+                        <img class="ta-product-img" src="@cat.ImageUrl" alt="@cat.Title" loading="lazy" />
+                    </div>
+                </div>
+                <h4>@cat.Title</h4>
+                <p>@cat.Description</p>
+                <span class="ta-cat-link">Xem danh mục <i class="bi bi-arrow-right"></i></span>
+            </a>
+        }
+    </div>
+
+    @if (Model.HotProducts.Count > 0)
+    {
+        <div class="ta-section-label">Hot</div>
+        <section id="hot" class="mb-4">
+            <div class="ta-section-head">
+                <h2>Hàng đang hot</h2>
+                <a class="link-more" asp-controller="Catalog" asp-action="Index">Xem tất cả →</a>
+            </div>
+            <div class="ta-product-grid">
+                @foreach (var item in Model.HotProducts)
+                {
+                    <partial name="_ProductCard" model="item" />
+                }
+            </div>
+        </section>
+    }
+
+    @if (Model.BestSellers.Count > 0)
+    {
+        <div class="ta-section-label">Bán chạy</div>
+        <section id="best-sellers" class="mb-4">
+            <div class="ta-section-head">
+                <h2>Hàng bán chạy</h2>
+                <a class="link-more" asp-controller="Catalog" asp-action="Index">Xem tất cả →</a>
+            </div>
+            <div class="ta-product-grid">
+                @foreach (var item in Model.BestSellers)
+                {
+                    <partial name="_ProductCard" model="item" />
+                }
+            </div>
+        </section>
+    }
+
+    <div class="ta-section-label">Nổi bật</div>
+    <section id="featured">
+        <div class="ta-section-head">
+            <h2>Sản phẩm nổi bật</h2>
+            <a class="link-more" asp-controller="Catalog" asp-action="Index">Xem tất cả →</a>
+        </div>
+        <div class="ta-tabs" role="tablist">
+            <button class="ta-tab active" type="button" data-tab="all">Tất cả</button>
+            <button class="ta-tab" type="button" data-tab="gaming">PC Gaming</button>
+            <button class="ta-tab" type="button" data-tab="graphics">PC Đồ họa</button>
+            <button class="ta-tab" type="button" data-tab="office">PC Văn phòng</button>
+        </div>
+
+        <div class="ta-product-panel active ta-product-grid" data-panel="all">
+            @foreach (var item in Model.FeaturedAll)
+            {
+                <partial name="_ProductCard" model="item" />
+            }
+        </div>
+        <div class="ta-product-panel ta-product-grid" data-panel="gaming">
+            @foreach (var item in Model.FeaturedGaming)
+            {
+                <partial name="_ProductCard" model="item" />
+            }
+        </div>
+        <div class="ta-product-panel ta-product-grid" data-panel="graphics">
+            @foreach (var item in Model.FeaturedGraphics)
+            {
+                <partial name="_ProductCard" model="item" />
+            }
+        </div>
+        <div class="ta-product-panel ta-product-grid" data-panel="office">
+            @foreach (var item in Model.FeaturedOffice)
+            {
+                <partial name="_ProductCard" model="item" />
+            }
+        </div>
+    </section>
+
+    <section class="mt-5" id="pc-gaming">
+        <div class="ta-section-label">Gaming</div>
+        <div class="feat-head">
+            <h3>PC Gaming nổi bật</h3>
+            <a class="link-more" asp-controller="Catalog" asp-action="Index" asp-route-CategoryCode="PC_PREBUILT">Xem thêm →</a>
+        </div>
+        <div class="feat-row">
+            @foreach (var item in Model.PcGaming)
+            {
+                <a class="mini-card" asp-route="ProductDetail" asp-route-slug="@(string.IsNullOrEmpty(item.Slug) ? SeoSlug.From(item.Name) : item.Slug)" asp-route-id="@item.ComponentId">
+                    <div class="mini-thumb">
+                        <img class="ta-product-img" src="@item.ImageUrl" alt="@item.Name" loading="lazy" />
+                        @if (item.IsSoldOut && item.IsHot)
+                        {
+                            <span class="badge text-bg-danger">Cháy hàng</span>
+                        }
+                        else if (item.BestSeller)
+                        {
+                            <span class="badge">HOT</span>
+                        }
+                    </div>
+                    <div class="mini-body">
+                        <div class="mini-name">@item.Name</div>
+                        <div class="mini-meta"><span class="stars">★★★★★</span><span class="price">@item.Price</span></div>
+                    </div>
+                </a>
+            }
+        </div>
+    </section>
+
+    <section class="mt-5" id="linh-kien">
+        <div class="ta-section-label">Linh kiện</div>
+        <div class="feat-head">
+            <h3>Linh kiện nổi bật</h3>
+            <a class="link-more" asp-controller="Catalog" asp-action="Index" asp-route-CategoryCode="CPU">Xem thêm →</a>
+        </div>
+        <div class="feat-row">
+            @{
+                var componentBadges = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["TTG-CPU-I5-14400F"] = "CPU",
+                    ["TTG-MB-B760M-A-D5"] = "MAIN",
+                    ["TTG-VGA-RTX4070-12"] = "VGA",
+                    ["TTG-SSD-SN580-1T"] = "SSD"
+                };
+            }
+            @foreach (var item in Model.Components)
+            {
+                <a class="mini-card" asp-route="ProductDetail" asp-route-slug="@(string.IsNullOrEmpty(item.Slug) ? SeoSlug.From(item.Name) : item.Slug)" asp-route-id="@item.ComponentId">
+                    <div class="mini-thumb">
+                        <img class="ta-product-img" src="@item.ImageUrl" alt="@item.Name" loading="lazy" />
+                        @if (componentBadges.TryGetValue(item.Sku, out var badge))
+                        {
+                            <span class="badge">@badge</span>
+                        }
+                    </div>
+                    <div class="mini-body">
+                        <div class="mini-name">@item.Name</div>
+                        <div class="mini-meta"><span class="stars">★★★★★</span><span class="price">@item.Price</span></div>
+                    </div>
+                </a>
+            }
+        </div>
+    </section>
+
+    <section class="service-strip">
+        <div class="service-item">
+            <div class="icon"><i class="bi bi-truck"></i></div>
+            <h5>Giao hàng toàn quốc</h5>
+            <p>Giao trước, thanh toán COD khi nhận hàng</p>
+        </div>
+        <div class="service-item">
+            <div class="icon"><i class="bi bi-arrow-repeat"></i></div>
+            <h5>Đổi trả trong 30 ngày</h5>
+            <p>Đổi mới nếu lỗi do nhà sản xuất</p>
+        </div>
+        <div class="service-item">
+            <div class="icon"><i class="bi bi-credit-card"></i></div>
+            <h5>Thanh toán linh hoạt</h5>
+            <p>Hỗ trợ COD và chuyển khoản</p>
+        </div>
+        <div class="service-item">
+            <div class="icon"><i class="bi bi-headset"></i></div>
+            <h5>Tư vấn tận tâm</h5>
+            <p>Hotline &amp; chat hỗ trợ 24/7</p>
+        </div>
+    </section>
+
+    <section class="experience-wrap" id="shopping-experience">
+        <h3>Trải nghiệm mua sắm tại <span>Tech Arena</span></h3>
+        <h2>Cam kết 100% hài lòng</h2>
+        <div class="exp-list" id="experience-list">
+            <button class="exp-row" type="button" aria-expanded="false" data-target="exp-1"><span>1. Liên hệ chăm sóc khách hàng dễ dàng</span><strong>+</strong></button>
+            <div class="exp-row-content" id="exp-1" hidden>Hỗ trợ trực tuyến qua hotline và chat trong suốt quá trình chọn linh kiện, build máy và sau bán hàng.</div>
+            <button class="exp-row" type="button" aria-expanded="false" data-target="exp-2"><span>2. Giao hàng nhanh trong khu vực nội thành</span><strong>+</strong></button>
+            <div class="exp-row-content" id="exp-2" hidden>Ưu tiên xử lý đơn nhanh cho nội thành Hà Nội/TP.HCM, xác nhận tình trạng linh kiện trước khi giao.</div>
+            <button class="exp-row" type="button" aria-expanded="false" data-target="exp-3"><span>3. Tư vấn cấu hình theo nhu cầu sử dụng</span><strong>+</strong></button>
+            <div class="exp-row-content" id="exp-3" hidden>Kỹ thuật viên tư vấn theo ngân sách và tác vụ: gaming, đồ họa 2D/3D, render, livestream và văn phòng.</div>
+            <button class="exp-row" type="button" aria-expanded="false" data-target="exp-4"><span>4. Hỗ trợ thu cũ nâng cấp linh kiện</span><strong>+</strong></button>
+            <div class="exp-row-content" id="exp-4" hidden>Hỗ trợ nâng cấp theo từng giai đoạn: RAM, SSD, VGA hoặc full bộ, giúp tối ưu chi phí đầu tư.</div>
+            <button class="exp-row active" type="button" aria-expanded="true" data-target="exp-5"><span>5. Bảo hành và hỗ trợ kỹ thuật sau bán hàng</span><strong>−</strong></button>
+            <div class="exp-row-content" id="exp-5">Đối với khách hàng bảo hành tại Tech Arena, cửa hàng sẽ hỗ trợ mượn thiết bị thay thế tương đương trong thời gian chờ xử lý.</div>
+        </div>
+    </section>
+
+    <section class="showroom-block" id="showroom">
+        <h3>Hệ thống showroom <span>Tech Arena</span></h3>
+        <div class="showroom-grid">
+            <div class="showroom-card">
+                <h4>SHOWROOM HÀ NỘI</h4>
+                <ul>
+                    <li>Địa chỉ: Đống Đa - Hà Nội</li>
+                    <li>Số điện thoại: 076.893.6043</li>
+                    <li>Email: techarena.support@gmail.com</li>
+                </ul>
+            </div>
+            <div class="showroom-card">
+                <h4>SHOWROOM TP. HỒ CHÍ MINH</h4>
+                <ul>
+                    <li>Địa chỉ: Quận 10 - TP.HCM</li>
+                    <li>Số điện thoại: 076.893.6043</li>
+                    <li>Email: techarena.support@gmail.com</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+<script>
+    (() => {
+        const tabs = document.querySelectorAll('.ta-tab');
+        const panels = document.querySelectorAll('.ta-product-panel');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.tab;
+                tabs.forEach(t => t.classList.toggle('active', t === tab));
+                panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+            });
+        });
+    })();
+
+    (() => {
+        const wrap = document.querySelector('#experience-list');
+        if (!wrap) return;
+        const buttons = Array.from(wrap.querySelectorAll('.exp-row[data-target]'));
+        const closeAll = () => {
+            buttons.forEach(btn => {
+                const id = btn.getAttribute('data-target');
+                const pane = id ? document.getElementById(id) : null;
+                btn.classList.remove('active');
+                btn.setAttribute('aria-expanded', 'false');
+                const sign = btn.querySelector('strong');
+                if (sign) sign.textContent = '+';
+                if (pane) pane.hidden = true;
+            });
+        };
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-target');
+                if (!id) return;
+                const pane = document.getElementById(id);
+                if (!pane) return;
+                const isOpen = btn.getAttribute('aria-expanded') === 'true';
+                closeAll();
+                if (!isOpen) {
+                    btn.classList.add('active');
+                    btn.setAttribute('aria-expanded', 'true');
+                    const sign = btn.querySelector('strong');
+                    if (sign) sign.textContent = '−';
+                    pane.hidden = false;
+                }
+            });
+        });
+    })();
+</script>
+}

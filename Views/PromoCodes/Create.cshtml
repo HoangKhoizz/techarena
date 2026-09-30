@@ -1,0 +1,77 @@
+@model ban_link_kien_PC.Controllers.PromoCodeEditViewModel
+@{
+    var isEdit = Model.PromoCodeId > 0;
+    ViewData["Title"] = isEdit ? $"Sửa {Model.Code}" : "Thêm mã KM";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell staff-admin">
+    <h2 class="mb-3">@(isEdit ? $"Sửa mã #{Model.PromoCodeId}" : "Thêm mã khuyến mãi")</h2>
+
+    <form asp-action="@(isEdit ? "Edit" : "Create")" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        @if (isEdit)
+        {
+            <input type="hidden" asp-for="PromoCodeId" />
+        }
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="col-md-4">
+            <label class="form-label" asp-for="Code">Mã *</label>
+            <input asp-for="Code" class="form-control text-uppercase" required />
+            <span asp-validation-for="Code" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" asp-for="DiscountType">Loại giảm</label>
+            <select asp-for="DiscountType" asp-items="Model.DiscountTypeOptions" class="form-select"></select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" asp-for="DiscountValue">Giá trị *</label>
+            <input asp-for="DiscountValue" class="form-control" type="number" step="0.01" min="0.01" required />
+            <span asp-validation-for="DiscountValue" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" asp-for="MinOrderVnd">Đơn tối thiểu (₫)</label>
+            <input asp-for="MinOrderVnd" class="form-control" type="number" min="0" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" asp-for="MaxUses">Số lượt tối đa</label>
+            <input asp-for="MaxUses" class="form-control" type="number" min="1" placeholder="Để trống = không giới hạn" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" asp-for="ApplicableTier">Hạng áp dụng</label>
+            <select asp-for="ApplicableTier" asp-items="Model.TierOptions" class="form-select"></select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" asp-for="StartsAtUtc">Bắt đầu (UTC)</label>
+            <input asp-for="StartsAtUtc" class="form-control" type="datetime-local" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" asp-for="ExpiresAtUtc">Hết hạn (UTC)</label>
+            <input asp-for="ExpiresAtUtc" class="form-control" type="datetime-local" />
+            <span asp-validation-for="ExpiresAtUtc" class="text-danger small"></span>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check mb-2">
+                <input asp-for="IsActive" class="form-check-input" />
+                <label class="form-check-label" asp-for="IsActive">Đang bật</label>
+            </div>
+        </div>
+        <div class="col-12">
+            <label class="form-label" asp-for="Description">Mô tả</label>
+            <input asp-for="Description" class="form-control" />
+        </div>
+        @if (isEdit)
+        {
+            <div class="col-12 small text-muted">Đã dùng: @Model.UsedCount lượt</div>
+        }
+        <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Lưu</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">Quay lại</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,275 @@
+@using System
+@using ban_link_kien_PC.Domain.Auth
+@{
+    var title = ViewData["Title"]?.ToString() ?? "Admin";
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    var tabQuery = Context.Request.Query["tab"].ToString();
+
+    bool IsAdminAction(string action) =>
+        string.Equals(currentController, "Admin", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+    bool IsAdminActionAny(params string[] actions) =>
+        string.Equals(currentController, "Admin", StringComparison.OrdinalIgnoreCase) &&
+        actions.Any(a => string.Equals(currentAction, a, StringComparison.OrdinalIgnoreCase));
+    bool IsStaffNav() => string.Equals(currentController, "Staff", StringComparison.OrdinalIgnoreCase);
+    bool IsCustomersNav() => string.Equals(currentController, "Customers", StringComparison.OrdinalIgnoreCase);
+    bool IsPromoNav() => string.Equals(currentController, "PromoCodes", StringComparison.OrdinalIgnoreCase);
+    bool IsCskhNav() => string.Equals(currentController, "Cskh", StringComparison.OrdinalIgnoreCase);
+    bool IsWarrantyAdmin() =>
+        IsCskhNav() && string.Equals(currentAction, "Warranties", StringComparison.OrdinalIgnoreCase);
+    bool IsOrdersListNav() =>
+        string.Equals(currentController, "Admin", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(currentAction, "Orders", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(tabQuery, "debt", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(tabQuery, "shipping", StringComparison.OrdinalIgnoreCase);
+    bool IsShippingNav() =>
+        string.Equals(currentController, "Admin", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(currentAction, "Orders", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(tabQuery, "shipping", StringComparison.OrdinalIgnoreCase);
+    bool IsPackingNav() =>
+        string.Equals(currentController, "Admin", StringComparison.OrdinalIgnoreCase)
+        && (string.Equals(currentAction, "Packing", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(currentAction, "PrintShippingLabel", StringComparison.OrdinalIgnoreCase));
+    bool IsTechnicalNav() =>
+        string.Equals(currentController, "Technical", StringComparison.OrdinalIgnoreCase);
+    bool IsDebtsNav() =>
+        string.Equals(currentController, "Admin", StringComparison.OrdinalIgnoreCase)
+        && (string.Equals(currentAction, "Debts", StringComparison.OrdinalIgnoreCase)
+            || (string.Equals(currentAction, "Orders", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(tabQuery, "debt", StringComparison.OrdinalIgnoreCase)));
+
+    bool isSuper = StaffRoles.IsSuperAdmin(User);
+    bool canSales = isSuper || User.IsInRole(StaffRoles.Sales);
+    bool canWarehouse = isSuper || User.IsInRole(StaffRoles.Warehouse);
+    bool canTechnical = isSuper || User.IsInRole(StaffRoles.Technical);
+    bool canAccounting = isSuper || User.IsInRole(StaffRoles.Accounting);
+
+    // Nhóm menu theo phòng ban (SuperAdmin thấy tất cả)
+    bool showOps = canSales || canWarehouse || canTechnical || canAccounting;
+    bool showCatalog = canWarehouse || isSuper;
+    bool showCustomers = canSales || isSuper;
+    bool showSystem = canAccounting || isSuper;
+
+    bool OpsOpen = showOps && (IsOrdersListNav() || IsPackingNav() || IsTechnicalNav() || IsShippingNav() || IsDebtsNav());
+    bool CatalogOpen = showCatalog && (IsAdminActionAny("Products", "ProductCreate", "ProductEdit", "Inventory", "Waitlist") || IsWarrantyAdmin());
+    bool CustomerOpen = showCustomers && (IsCustomersNav()
+        || (IsCskhNav() && (string.Equals(currentAction, "Questions", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(currentAction, "Reviews", StringComparison.OrdinalIgnoreCase))));
+    bool SystemOpen = showSystem && (IsAdminAction("Revenue") || IsPromoNav() || IsStaffNav());
+
+    string NavCls(bool active) => active ? "admin-nav-link active" : "admin-nav-link";
+    var roleLabel = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+        ?? (isSuper ? StaffRoles.SuperAdmin : "Staff");
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@title - Admin Tech Arena</title>
+    <link rel="icon" type="image/svg+xml" href="~/images/logo.svg" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ban_link_kien_PC.styles.css" asp-append-version="true" />
+</head>
+<body class="admin-body">
+    <div class="admin-shell">
+        <aside class="admin-sidebar">
+            <a class="admin-brand" asp-controller="Admin" asp-action="Index">
+                <img src="~/images/logo.svg" alt="Tech Arena" />
+                <span>TECH ARENA</span>
+            </a>
+            <div class="admin-role-chip small text-muted px-2">
+                <i class="bi bi-person-badge"></i> @User.Identity?.Name · @roleLabel
+            </div>
+
+            <nav class="admin-nav" id="adminNavAccordion">
+                @if (isSuper)
+                {
+                    <a class="@NavCls(IsAdminAction("Index"))" asp-controller="Admin" asp-action="Index">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                }
+
+                @* —— Sales: xác nhận đơn + khách hàng —— *@
+                @if (canSales)
+                {
+                    <div class="admin-nav-group @(OpsOpen && canSales ? "is-open" : "")">
+                        <button class="admin-nav-group-toggle" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#navSales"
+                                aria-expanded="true" aria-controls="navSales">
+                            <span><i class="bi bi-cart-check"></i> Sales</span>
+                            <i class="bi bi-chevron-down admin-nav-chevron"></i>
+                        </button>
+                        <div class="collapse show" id="navSales">
+                            <div class="admin-nav-sub">
+                                <a class="@NavCls(IsOrdersListNav())" asp-controller="Admin" asp-action="Orders" asp-route-tab="pending">
+                                    <i class="bi bi-receipt"></i> Xác nhận đơn hàng
+                                </a>
+                                <a class="@NavCls(IsCustomersNav())" asp-controller="Customers" asp-action="Index">
+                                    <i class="bi bi-people"></i> Khách hàng
+                                </a>
+                                @if (isSuper)
+                                {
+                                    <a class="@NavCls(IsCskhNav() && currentAction=="Questions")" asp-controller="Cskh" asp-action="Questions">
+                                        <i class="bi bi-chat-dots"></i> Hỏi đáp
+                                    </a>
+                                    <a class="@NavCls(IsCskhNav() && currentAction=="Reviews")" asp-controller="Cskh" asp-action="Reviews">
+                                        <i class="bi bi-star"></i> Đánh giá
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @* —— Warehouse: xuất kho + tồn kho —— *@
+                @if (canWarehouse)
+                {
+                    <div class="admin-nav-group is-open">
+                        <button class="admin-nav-group-toggle" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#navWh"
+                                aria-expanded="true" aria-controls="navWh">
+                            <span><i class="bi bi-box-seam"></i> Kho</span>
+                            <i class="bi bi-chevron-down admin-nav-chevron"></i>
+                        </button>
+                        <div class="collapse show" id="navWh">
+                            <div class="admin-nav-sub">
+                                <a class="@NavCls(IsPackingNav())" asp-controller="Admin" asp-action="Packing">
+                                    <i class="bi bi-box-arrow-up"></i> Xuất kho / Vận đơn
+                                </a>
+                                <a class="@NavCls(IsAdminAction("Inventory"))" asp-controller="Admin" asp-action="Inventory">
+                                    <i class="bi bi-archive"></i> Tồn kho
+                                </a>
+                                @if (isSuper)
+                                {
+                                    <a class="@NavCls(IsAdminActionAny("Products","ProductCreate","ProductEdit"))" asp-controller="Admin" asp-action="Products">
+                                        <i class="bi bi-grid"></i> Quản lý sản phẩm
+                                    </a>
+                                    <a class="@NavCls(IsAdminAction("Waitlist"))" asp-controller="Admin" asp-action="Waitlist">
+                                        <i class="bi bi-bell"></i> Đăng ký theo dõi
+                                    </a>
+                                    <a class="@NavCls(IsWarrantyAdmin())" asp-controller="Cskh" asp-action="Warranties">
+                                        <i class="bi bi-shield-check"></i> Bảo hành
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @* —— Technical —— *@
+                @if (canTechnical)
+                {
+                    <div class="admin-nav-group is-open">
+                        <button class="admin-nav-group-toggle" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#navTech"
+                                aria-expanded="true" aria-controls="navTech">
+                            <span><i class="bi bi-motherboard"></i> Kỹ thuật</span>
+                            <i class="bi bi-chevron-down admin-nav-chevron"></i>
+                        </button>
+                        <div class="collapse show" id="navTech">
+                            <div class="admin-nav-sub">
+                                <a class="@NavCls(IsTechnicalNav())" asp-controller="Technical" asp-action="Index">
+                                    <i class="bi bi-tools"></i> Kỹ thuật lắp ráp
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @* —— Accounting —— *@
+                @if (canAccounting)
+                {
+                    <div class="admin-nav-group is-open">
+                        <button class="admin-nav-group-toggle" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#navAcc"
+                                aria-expanded="true" aria-controls="navAcc">
+                            <span><i class="bi bi-cash-coin"></i> Kế toán</span>
+                            <i class="bi bi-chevron-down admin-nav-chevron"></i>
+                        </button>
+                        <div class="collapse show" id="navAcc">
+                            <div class="admin-nav-sub">
+                                <a class="@NavCls(IsDebtsNav())" asp-controller="Admin" asp-action="Debts">
+                                    <i class="bi bi-wallet2"></i> Thu công nợ
+                                </a>
+                                <a class="@NavCls(IsAdminAction("Revenue"))" asp-controller="Admin" asp-action="Revenue">
+                                    <i class="bi bi-graph-up"></i> Thống kê doanh thu
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @* —— SuperAdmin: hệ thống —— *@
+                @if (isSuper)
+                {
+                    <div class="admin-nav-group @(SystemOpen ? "is-open" : "")">
+                        <button class="admin-nav-group-toggle" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#navSystem"
+                                aria-expanded="@(SystemOpen ? "true" : "false")" aria-controls="navSystem">
+                            <span><i class="bi bi-gear"></i> Hệ thống</span>
+                            <i class="bi bi-chevron-down admin-nav-chevron"></i>
+                        </button>
+                        <div class="collapse @(SystemOpen ? "show" : "")" id="navSystem">
+                            <div class="admin-nav-sub">
+                                <a class="@NavCls(IsPromoNav())" asp-controller="PromoCodes" asp-action="Index">
+                                    <i class="bi bi-ticket-perforated"></i> Mã khuyến mãi
+                                </a>
+                                <a class="admin-nav-link" asp-controller="Pos" asp-action="Login" target="_blank" rel="noopener">
+                                    <i class="bi bi-shop-window"></i> POS quầy
+                                </a>
+                                <a class="@NavCls(IsStaffNav())" asp-controller="Staff" asp-action="Index">
+                                    <i class="bi bi-person-badge"></i> Quản lý nhân viên
+                                </a>
+                                <a class="@NavCls(IsShippingNav())" asp-controller="Admin" asp-action="Orders" asp-route-tab="shipping">
+                                    <i class="bi bi-truck"></i> Giao hàng
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </nav>
+
+            <div class="admin-side-foot">
+                <a class="btn btn-sm btn-outline-secondary w-100 mb-2" asp-controller="Home" asp-action="Index">Về website</a>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button class="btn btn-sm btn-primary w-100" type="submit">Đăng xuất</button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="admin-main">
+            <header class="admin-topbar">
+                <h5 class="mb-0">@title</h5>
+                <span class="text-muted small">Portal · @roleLabel</span>
+            </header>
+            <main class="admin-content">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            document.querySelectorAll('#adminNavAccordion .collapse').forEach(function (el) {
+                el.addEventListener('show.bs.collapse', function () {
+                    var g = el.closest('.admin-nav-group');
+                    if (g) g.classList.add('is-open');
+                });
+                el.addEventListener('hide.bs.collapse', function () {
+                    var g = el.closest('.admin-nav-group');
+                    if (g) g.classList.remove('is-open');
+                });
+            });
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,484 @@
+@model ban_link_kien_PC.Domain.Catalog.CatalogDetailViewModel
+@{
+    // Title / Meta do CatalogController gán; fallback nếu thiếu
+    if (ViewData["Title"] is null)
+        ViewData["Title"] = Model.Name;
+    var isPrebuiltPc = Model.CategoryCode == "PC_PREBUILT" || Model.CategoryCode == "PC_WORKSTATION";
+    var isFollowingWaitlist = ViewBag.IsFollowingWaitlist is bool x && x;
+}
+
+<div class="ta-container py-4 catalog-detail-page">
+    @if (ViewBag.WaitlistInfo is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+    @if (ViewBag.WaitlistError is string err && !string.IsNullOrWhiteSpace(err))
+    {
+        <div class="alert alert-warning py-2">@err</div>
+    }
+
+    <nav class="mb-2 small" aria-label="Breadcrumb">
+        <a asp-controller="Catalog" asp-action="Index">Sản phẩm</a>
+        <span class="text-muted"> / </span>
+        <span class="text-muted">@Model.CategoryName</span>
+    </nav>
+
+    <div class="catalog-detail-layout">
+        <div class="catalog-detail-image">
+            <img class="ta-product-img"
+                 src="@Model.ImageUrl"
+                 alt="@Model.Name"
+                 loading="lazy"
+                 width="600"
+                 height="600" />
+        </div>
+
+        <div class="catalog-detail-main">
+            <div class="small text-muted mb-1">@Model.CategoryName</div>
+            <h1 class="catalog-detail-title">@Model.Name</h1>
+            <div class="catalog-detail-sku mb-2">SKU: @Model.Sku</div>
+            <div class="catalog-detail-price mb-2">@Model.PriceVnd.ToString("N0") đ</div>
+            <div class="mb-2">Thương hiệu: <strong>@(Model.BrandName ?? "N/A")</strong></div>
+            <div class="mb-3">
+                @if (Model.IsSoldOut && Model.IsHot)
+                {
+                    <span class="badge text-bg-danger fs-6">Cháy hàng</span>
+                    <span class="ms-2 text-muted">Tồn kho: 0</span>
+                }
+                else if (Model.IsSoldOut)
+                {
+                    <span class="badge text-bg-secondary fs-6">Hết hàng</span>
+                    <span class="ms-2 text-muted">Tồn kho: 0</span>
+                }
+                else
+                {
+                    <span>Tồn kho: <strong>@Model.StockQty</strong></span>
+                    @if (Model.IsHot)
+                    {
+                        <span class="badge ta-tag-hot ms-2">Hot</span>
+                    }
+                    @if (Model.IsBestSeller)
+                    {
+                        <span class="badge text-bg-success ms-1">Bán chạy</span>
+                    }
+                }
+                @if (isFollowingWaitlist)
+                {
+                    <span class="badge rounded-pill bg-info text-dark ms-2">Đang theo dõi khi có hàng</span>
+                }
+            </div>
+
+            <div class="catalog-buy-panel" data-component-id="@Model.ComponentId" data-sku="@Model.Sku" data-stock="@Model.StockQty" data-sold-out="@(Model.IsSoldOut ? "1" : "0")" data-hot="@(Model.IsHot ? "1" : "0")">
+                @if (!Model.IsSoldOut)
+                {
+                    <div class="catalog-qty-row mb-3">
+                        <label class="form-label mb-1">Số lượng</label>
+                        <div class="qty-stepper" role="group" aria-label="Chọn số lượng">
+                            <button type="button" class="qty-btn" id="qtyMinus" aria-label="Giảm">−</button>
+                            <input type="number" id="buyQty" class="qty-input" value="1" min="1" max="@Model.StockQty" inputmode="numeric" />
+                            <button type="button" class="qty-btn" id="qtyPlus" aria-label="Tăng">+</button>
+                        </div>
+                        <div class="small text-muted mt-1">Tối đa @Model.StockQty sản phẩm</div>
+                    </div>
+
+                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <button type="button" class="btn btn-outline-primary catalog-btn-cart" id="btnAddCart">
+                            <i class="bi bi-cart-plus"></i> Thêm vào giỏ hàng
+                        </button>
+                        <button type="button" class="btn btn-buy-now" id="btnBuyNow">
+                            <i class="bi bi-bag-check-fill"></i> Mua ngay
+                        </button>
+                        @if (!isPrebuiltPc)
+                        {
+                            <a asp-controller="BuildPc" asp-action="Index" class="btn btn-outline-secondary">Build cấu hình</a>
+                        }
+                        <a asp-controller="Catalog" asp-action="Index" class="btn btn-outline-secondary">Xem sản phẩm khác</a>
+                    </div>
+
+                    <form id="buyNowForm" asp-controller="Cart" asp-action="BuyNow" method="post" class="d-none">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="componentId" value="@Model.ComponentId" />
+                        <input type="hidden" name="qty" id="buyNowQty" value="1" />
+                        <input type="hidden" name="returnSku" value="@Model.Sku" />
+                    </form>
+                }
+                else
+                {
+                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <button type="button" class="btn btn-secondary" disabled>
+                            @(Model.IsHot ? "Cháy hàng" : "Hết hàng")
+                        </button>
+                        <a asp-controller="Catalog" asp-action="Index" class="btn btn-outline-secondary">Xem sản phẩm khác</a>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            @if (isFollowingWaitlist)
+                            {
+                                <form asp-action="LeaveWaitlist" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="componentId" value="@Model.ComponentId" />
+                                    <input type="hidden" name="returnSku" value="@Model.Sku" />
+                                    <button type="submit" class="btn btn-outline-danger">Hủy theo dõi</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="JoinWaitlist" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="componentId" value="@Model.ComponentId" />
+                                    <input type="hidden" name="returnSku" value="@Model.Sku" />
+                                    <button type="submit" class="btn btn-outline-primary">Nhận thông báo khi có hàng</button>
+                                </form>
+                            }
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-primary" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Url.Action("Detail","Catalog", new { sku = Model.Sku })">Đăng nhập để nhận thông báo khi có hàng</a>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="catalog-spec-card mt-3">
+        <h2 class="mb-3 catalog-section-title">Thông số chi tiết</h2>
+        @if (Model.Specs.Count == 0)
+        {
+            <div class="text-muted">Hiện chưa có thông số kỹ thuật chi tiết cho sản phẩm này.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0">
+                    <tbody>
+                    @foreach (var spec in Model.Specs)
+                    {
+                        <tr>
+                            <th scope="row" style="width: 28%">@spec.Key</th>
+                            <td>@spec.Value</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="catalog-spec-card mt-3 product-reviews" data-product-id="@Model.ComponentId">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h2 class="mb-0 catalog-section-title">Đánh giá &amp; Nhận xét</h2>
+            <div class="small text-muted" id="reviewSummary">Đang tải…</div>
+        </div>
+
+        <form id="reviewForm" class="review-form mb-4">
+            <div id="reviewGate" class="alert alert-secondary py-2 mb-3 d-none"></div>
+            <div id="reviewFormFields">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">Tên hiển thị</label>
+                    <input type="text" id="reviewName" class="form-control" maxlength="200"
+                           placeholder="@(User.Identity?.IsAuthenticated == true ? User.Identity.Name : "Khách hàng")" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Số sao</label>
+                    <div class="review-stars" id="reviewStars" role="radiogroup" aria-label="Chọn số sao">
+                        @for (var s = 1; s <= 5; s++)
+                        {
+                            <button type="button" class="star-btn" data-star="@s" aria-label="@s sao">★</button>
+                        }
+                    </div>
+                    <input type="hidden" id="reviewRating" value="5" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Nhận xét</label>
+                    <textarea id="reviewComment" class="form-control" rows="3" maxlength="2000" required placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm…"></textarea>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary" id="reviewSubmitBtn">Gửi đánh giá</button>
+                    <span class="ms-2 small" id="reviewMsg"></span>
+                </div>
+            </div>
+            </div>
+        </form>
+
+        <div id="reviewList" class="review-list"></div>
+    </div>
+
+    <div class="catalog-spec-card mt-3 product-qa" data-product-id="@Model.ComponentId">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h2 class="mb-0 catalog-section-title">Hỏi đáp sản phẩm</h2>
+            <div class="small text-muted" id="qaSummary">Đang tải…</div>
+        </div>
+
+        <form id="qaForm" class="mb-4">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">Tên của bạn</label>
+                    <input type="text" id="qaName" class="form-control" maxlength="200"
+                           placeholder="@(User.Identity?.IsAuthenticated == true ? User.Identity.Name : "Khách hàng")" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Email (tuỳ chọn)</label>
+                    <input type="email" id="qaEmail" class="form-control" maxlength="200" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Câu hỏi</label>
+                    <textarea id="qaQuestion" class="form-control" rows="2" maxlength="2000" required placeholder="Hỏi về sản phẩm (tối thiểu 5 ký tự)…"></textarea>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-outline-primary">Gửi câu hỏi</button>
+                    <span class="ms-2 small" id="qaMsg"></span>
+                </div>
+            </div>
+        </form>
+
+        <div id="qaList"></div>
+    </div>
+</div>
+
+@section Scripts {
+<div id="taToastHost" class="ta-toast-host" aria-live="polite"></div>
+<script>
+(() => {
+  // ── Mua hàng (qty / giỏ / mua ngay) ──
+  const buyPanel = document.querySelector('.catalog-buy-panel');
+  if (buyPanel && buyPanel.dataset.soldOut !== '1') {
+    const maxStock = Math.max(1, Number(buyPanel.dataset.stock) || 1);
+    const qtyInput = document.getElementById('buyQty');
+    const buyNowQty = document.getElementById('buyNowQty');
+    const tokenInput = document.querySelector('#buyNowForm input[name="__RequestVerificationToken"]');
+    const componentId = Number(buyPanel.dataset.componentId);
+
+    function clampQty(n) {
+      if (!Number.isFinite(n) || n < 1) return 1;
+      return Math.min(maxStock, Math.floor(n));
+    }
+    function syncQty(n) {
+      const v = clampQty(n);
+      qtyInput.value = String(v);
+      if (buyNowQty) buyNowQty.value = String(v);
+      return v;
+    }
+
+    document.getElementById('qtyMinus')?.addEventListener('click', () => syncQty(Number(qtyInput.value) - 1));
+    document.getElementById('qtyPlus')?.addEventListener('click', () => syncQty(Number(qtyInput.value) + 1));
+    qtyInput?.addEventListener('change', () => syncQty(Number(qtyInput.value)));
+    qtyInput?.addEventListener('blur', () => syncQty(Number(qtyInput.value)));
+
+    function showToast(message, ok) {
+      const host = document.getElementById('taToastHost');
+      if (!host) return;
+      const el = document.createElement('div');
+      el.className = 'ta-toast ' + (ok ? 'ta-toast-ok' : 'ta-toast-err');
+      el.textContent = message;
+      host.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('show'));
+      setTimeout(() => {
+        el.classList.remove('show');
+        setTimeout(() => el.remove(), 280);
+      }, 2800);
+    }
+
+    document.getElementById('btnAddCart')?.addEventListener('click', async () => {
+      const qty = syncQty(Number(qtyInput.value));
+      const btn = document.getElementById('btnAddCart');
+      btn.disabled = true;
+      try {
+        const body = new URLSearchParams();
+        body.set('componentId', String(componentId));
+        body.set('qty', String(qty));
+        if (tokenInput) body.set('__RequestVerificationToken', tokenInput.value);
+        const res = await fetch('/Cart/AddAjax', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': tokenInput?.value || ''
+          },
+          body
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          showToast(data.error || 'Số lượng trong kho không đủ.', false);
+          return;
+        }
+        showToast(data.message || 'Đã thêm vào giỏ hàng.', true);
+      } catch {
+        showToast('Không thể thêm vào giỏ. Thử lại.', false);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('btnBuyNow')?.addEventListener('click', () => {
+      syncQty(Number(qtyInput.value));
+      document.getElementById('buyNowForm')?.submit();
+    });
+  }
+
+  // ── Reviews ──
+  const root = document.querySelector('.product-reviews');
+  if (!root) return;
+  const productId = Number(root.dataset.productId);
+  const stars = document.getElementById('reviewStars');
+  const ratingInput = document.getElementById('reviewRating');
+  const list = document.getElementById('reviewList');
+  const summary = document.getElementById('reviewSummary');
+  const msg = document.getElementById('reviewMsg');
+
+  function paintStars(n) {
+    stars.querySelectorAll('.star-btn').forEach(btn => {
+      const v = Number(btn.dataset.star);
+      btn.classList.toggle('active', v <= n);
+    });
+  }
+  paintStars(5);
+
+  stars.addEventListener('click', (e) => {
+    const btn = e.target.closest('.star-btn');
+    if (!btn) return;
+    const n = Number(btn.dataset.star);
+    ratingInput.value = String(n);
+    paintStars(n);
+  });
+
+  async function loadReviews() {
+    const res = await fetch(`/api/reviews?productId=${productId}`);
+    const data = await res.json();
+    summary.textContent = data.count
+      ? `★ ${data.average}/5 · ${data.count} đánh giá`
+      : 'Chưa có đánh giá';
+
+    const gate = document.getElementById('reviewGate');
+    const fields = document.getElementById('reviewFormFields');
+    if (gate && fields) {
+      if (data.canReview) {
+        gate.classList.add('d-none');
+        fields.classList.remove('d-none');
+      } else {
+        fields.classList.add('d-none');
+        gate.classList.remove('d-none');
+        const reason = data.reviewBlockedReason || 'Bạn chưa đủ điều kiện đánh giá sản phẩm này.';
+        if (data.isAuthenticated === false) {
+          gate.innerHTML = `${escapeHtml(reason)} <a href="/Account/Login?returnUrl=${encodeURIComponent(location.pathname + location.search)}">Đăng nhập</a>`;
+        } else {
+          gate.textContent = reason;
+        }
+      }
+    }
+
+    list.innerHTML = '';
+    if (!data.items || data.items.length === 0) {
+      list.innerHTML = '<p class="text-muted mb-0">Chưa có đánh giá công khai.</p>';
+      return;
+    }
+    for (const r of data.items) {
+      const el = document.createElement('div');
+      el.className = 'review-item';
+      const starsText = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+      el.innerHTML = `
+        <div class="d-flex justify-content-between gap-2">
+          <strong>${escapeHtml(r.customerName)}</strong>
+          <span class="review-stars-inline">${starsText}</span>
+        </div>
+        <div class="small text-muted mb-1">${new Date(r.createdAt).toLocaleString('vi-VN')}</div>
+        <p class="mb-0">${escapeHtml(r.comment)}</p>`;
+      list.appendChild(el);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replaceAll('&','&amp;').replaceAll('<','&lt;')
+      .replaceAll('>','&gt;').replaceAll('"','&quot;');
+  }
+
+  document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msg.textContent = '';
+    const body = {
+      productId,
+      customerName: document.getElementById('reviewName').value.trim() || null,
+      rating: Number(ratingInput.value),
+      comment: document.getElementById('reviewComment').value.trim()
+    };
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      msg.textContent = data.error || 'Gửi đánh giá thất bại.';
+      msg.className = 'ms-2 small text-danger';
+      return;
+    }
+    msg.textContent = data.message || 'Đã gửi đánh giá (chờ admin duyệt).';
+    msg.className = 'ms-2 small text-success';
+    document.getElementById('reviewComment').value = '';
+    await loadReviews();
+  });
+
+  loadReviews().catch(() => { summary.textContent = 'Không tải được đánh giá.'; });
+
+  // ── Q&A ──
+  const qaRoot = document.querySelector('.product-qa');
+  if (!qaRoot) return;
+  const qaList = document.getElementById('qaList');
+  const qaSummary = document.getElementById('qaSummary');
+  const qaMsg = document.getElementById('qaMsg');
+
+  async function loadQa() {
+    const res = await fetch(`/api/questions?productId=${productId}`);
+    const data = await res.json();
+    qaSummary.textContent = data.count ? `${data.count} câu hỏi` : 'Chưa có câu hỏi';
+    qaList.innerHTML = '';
+    if (!data.items || data.items.length === 0) {
+      qaList.innerHTML = '<p class="text-muted mb-0">Hãy đặt câu hỏi đầu tiên về sản phẩm.</p>';
+      return;
+    }
+    for (const q of data.items) {
+      const el = document.createElement('div');
+      el.className = 'review-item';
+      const answered = q.status === 'ANSWERED' && q.answer;
+      el.innerHTML = `
+        <div class="d-flex justify-content-between gap-2">
+          <strong>${escapeHtml(q.askerName)}</strong>
+          <span class="badge ${answered ? 'text-bg-success' : 'text-bg-warning'}">${answered ? 'Đã trả lời' : 'Chờ trả lời'}</span>
+        </div>
+        <div class="small text-muted mb-1">${new Date(q.createdAtUtc).toLocaleString('vi-VN')}</div>
+        <p class="mb-2">${escapeHtml(q.question)}</p>
+        ${answered ? `<div class="alert alert-light border py-2 mb-0"><strong>Shop:</strong> ${escapeHtml(q.answer)}</div>` : ''}`;
+      qaList.appendChild(el);
+    }
+  }
+
+  document.getElementById('qaForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    qaMsg.textContent = '';
+    const body = {
+      productId,
+      askerName: document.getElementById('qaName').value.trim() || null,
+      askerEmail: document.getElementById('qaEmail').value.trim() || null,
+      question: document.getElementById('qaQuestion').value.trim()
+    };
+    const res = await fetch('/api/questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      qaMsg.textContent = data.error || 'Gửi câu hỏi thất bại.';
+      qaMsg.className = 'ms-2 small text-danger';
+      return;
+    }
+    qaMsg.textContent = data.message || 'Đã gửi câu hỏi.';
+    qaMsg.className = 'ms-2 small text-success';
+    document.getElementById('qaQuestion').value = '';
+    await loadQa();
+  });
+
+  loadQa().catch(() => { qaSummary.textContent = 'Không tải được hỏi đáp.'; });
+})();
+</script>
+}

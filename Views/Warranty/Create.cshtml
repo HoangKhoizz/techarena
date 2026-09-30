@@ -1,0 +1,50 @@
+@model ban_link_kien_PC.Controllers.CreateWarrantyViewModel
+@{
+    ViewData["Title"] = "Yêu cầu bảo hành";
+}
+
+<div class="ta-container py-4 page-shell" style="max-width:640px">
+    <h2 class="mb-3">Tạo yêu cầu bảo hành</h2>
+
+    @if (Model.EligibleOptions.Count == 0)
+    {
+        <div class="alert alert-warning">
+            Chưa có sản phẩm đủ điều kiện (cần đơn đã thanh toán / giao thành công).
+            <a asp-controller="Account" asp-action="Orders">Xem đơn hàng</a>
+        </div>
+    }
+    else
+    {
+        <div class="card page-card">
+            <div class="card-body">
+                <form asp-action="Create" method="post" class="row g-3">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="col-12">
+                        <label class="form-label" asp-for="SelectedItem">Sản phẩm / Đơn hàng *</label>
+                        <select asp-for="SelectedItem" asp-items="Model.EligibleOptions" class="form-select" required>
+                            <option value="">-- Chọn --</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" asp-for="SerialNumber">Số serial (nếu có)</label>
+                        <input asp-for="SerialNumber" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" asp-for="IssueDescription">Mô tả lỗi *</label>
+                        <textarea asp-for="IssueDescription" class="form-control" rows="4" required minlength="10"></textarea>
+                        <span asp-validation-for="IssueDescription" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Gửi yêu cầu</button>
+                        <a class="btn btn-outline-secondary" asp-action="Index">Quay lại</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

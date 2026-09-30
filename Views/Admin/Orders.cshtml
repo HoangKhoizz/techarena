@@ -1,0 +1,342 @@
+@using System
+@using ban_link_kien_PC.Domain.Orders
+@model ban_link_kien_PC.Controllers.AdminOrdersViewModel
+@{
+    ViewData["Title"] = Model.Tab == "debt" ? "Thu công nợ" : "Quản lý đơn hàng";
+    Layout = "_AdminLayout";
+    string TabClass(string tab) => Model.Tab == tab ? "nav-link active" : "nav-link";
+    string FromVal = Model.FromDate?.ToString("yyyy-MM-dd") ?? "";
+    string ToVal = Model.ToDate?.ToString("yyyy-MM-dd") ?? "";
+}
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-0">@(Model.Tab == "debt" ? "Thu công nợ" : "Quản lý đơn hàng")</h2>
+            <div class="text-muted small">Thao tác theo máy trạng thái — không đổi status tự do</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-primary" asp-action="Packing"><i class="bi bi-box-seam"></i> Đóng gói / Vận đơn</a>
+            <a class="btn btn-sm btn-outline-secondary" asp-controller="Technical" asp-action="Index">Kỹ thuật</a>
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Index">Dashboard</a>
+        </div>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+    @if (TempData["AdminError"] is string err && !string.IsNullOrWhiteSpace(err))
+    {
+        <div class="alert alert-danger py-2">@err</div>
+    }
+
+    <form method="get" class="row g-2 mb-3 align-items-end">
+        <input type="hidden" name="tab" value="@Model.Tab" />
+        <div class="col-md-3">
+            <label class="form-label small mb-1">Từ ngày</label>
+            <input type="date" name="fromDate" value="@FromVal" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small mb-1">Đến ngày</label>
+            <input type="date" name="toDate" value="@ToVal" class="form-control" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small mb-1">Tìm kiếm</label>
+            <input name="keyword" value="@Model.Keyword" class="form-control" placeholder="Mã đơn, người nhận, SĐT..." />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" type="submit">Lọc</button>
+            <a class="btn btn-outline-secondary" asp-action="Orders">Reset</a>
+        </div>
+    </form>
+
+    <ul class="nav nav-tabs mb-3 flex-wrap">
+        <li class="nav-item">
+            <a class="@TabClass("all")" asp-action="Orders" asp-route-tab="all" asp-route-keyword="@Model.Keyword" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal">
+                Tất cả <span class="badge text-bg-secondary">@Model.Counts.All</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("pending")" asp-action="Orders" asp-route-tab="pending" asp-route-keyword="@Model.Keyword" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal">
+                Chờ duyệt <span class="badge text-bg-warning">@Model.Counts.Pending</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("approved")" asp-action="Orders" asp-route-tab="approved" asp-route-keyword="@Model.Keyword" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal">
+                Đã duyệt <span class="badge text-bg-primary">@Model.Counts.Approved</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("packed")" asp-action="Orders" asp-route-tab="packed" asp-route-keyword="@Model.Keyword" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal">
+                Đã đóng gói <span class="badge text-bg-secondary">@Model.Counts.Packed</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("shipping")" asp-action="Orders" asp-route-tab="shipping" asp-route-keyword="@Model.Keyword" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal">
+                Đang giao <span class="badge text-bg-info">@Model.Counts.Shipping</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("debt")" asp-action="Orders" asp-route-tab="debt" asp-route-keyword="@Model.Keyword" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal">
+                Công nợ <span class="badge text-bg-danger">@Model.Counts.Debt</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("failed")" asp-action="Orders" asp-route-tab="failed" asp-route-keyword="@Model.Keyword" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal">
+                Giao thất bại <span class="badge text-bg-dark">@Model.Counts.Failed</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="@TabClass("cancelled")" asp-action="Orders" asp-route-tab="cancelled" asp-route-keyword="@Model.Keyword" asp-route-fromDate="@FromVal" asp-route-toDate="@ToVal">
+                Đã hủy <span class="badge text-bg-secondary">@Model.Counts.Cancelled</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách nhận</th>
+                    <th>Thanh toán</th>
+                    <th>Trạng thái</th>
+                    <th>Shipper</th>
+                    <th class="text-end">Tổng tiền</th>
+                    <th>Ngày tạo</th>
+                    <th style="min-width:280px">Thao tác tiếp theo</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="8" class="text-muted">Không có đơn phù hợp bộ lọc.</td></tr>
+            }
+            else
+            {
+                foreach (var row in Model.Rows)
+                {
+                    var can = row.AllowedActions;
+                    <tr class="@(row.IsDebt ? "table-warning" : null)">
+                        <td>
+                            <div class="fw-semibold">#@row.OrderId</div>
+                            <div class="small text-muted">@row.OrderType · @row.ItemCount SP</div>
+                            @if (row.IsLikelyBuildPc)
+                            {
+                                <span class="badge text-bg-info">Build PC</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(row.TrackingNumber))
+                            {
+                                <div class="small mt-1">
+                                    <a asp-action="PrintShippingLabel" asp-route-orderId="@row.OrderId" target="_blank">@row.TrackingNumber</a>
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@row.ReceiverName</div>
+                            <div class="small text-muted">@row.ReceiverPhone</div>
+                            <div class="small text-muted">@row.ShippingAddress</div>
+                        </td>
+                        <td>
+                            <div>@row.PaymentMethodCode</div>
+                            <div class="small text-muted">@row.CollectionDisplay</div>
+                            @if (row.DepositAmountVnd is > 0)
+                            {
+                                <div class="small text-muted">Ký quỹ: @row.DepositAmountVnd.Value.ToString("N0") đ</div>
+                            }
+                        </td>
+                        <td><span class="badge @row.StatusBadgeClass">@row.StatusDisplay</span></td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(row.AssignedStaffName))
+                            {
+                                <span>@row.AssignedStaffName</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">—</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <div>@row.TotalPriceVnd.ToString("N0") đ</div>
+                            @if (row.DiscountAmountVnd > 0)
+                            {
+                                <div class="small text-success">-@row.DiscountAmountVnd.ToString("N0") đ</div>
+                            }
+                        </td>
+                        <td>@row.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <div class="order-workflow-actions d-flex flex-column gap-2">
+
+                                @* —— Chờ xác nhận / chờ thanh toán —— *@
+                                @if (can.Contains(OrderWorkflowActions.Approve))
+                                {
+                                    <form asp-action="ApplyOrderAction" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="action" value="@OrderWorkflowActions.Approve" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <input type="hidden" name="fromDate" value="@FromVal" />
+                                        <input type="hidden" name="toDate" value="@ToVal" />
+                                        <button type="submit" class="btn btn-sm btn-primary w-100">Duyệt đơn</button>
+                                    </form>
+                                }
+                                @if (can.Contains(OrderWorkflowActions.Cancel))
+                                {
+                                    <form asp-action="ApplyOrderAction" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="action" value="@OrderWorkflowActions.Cancel" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <input type="hidden" name="fromDate" value="@FromVal" />
+                                        <input type="hidden" name="toDate" value="@ToVal" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100"
+                                                onclick="return confirm('Hủy đơn #@row.OrderId? Kho sẽ được hoàn nếu đã trừ.');">
+                                            Hủy đơn
+                                        </button>
+                                    </form>
+                                }
+
+                                @* —— Đã duyệt —— *@
+                                @if (can.Contains(OrderWorkflowActions.ExportToTech))
+                                {
+                                    <form asp-action="ApplyOrderAction" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="action" value="@OrderWorkflowActions.ExportToTech" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <input type="hidden" name="fromDate" value="@FromVal" />
+                                        <input type="hidden" name="toDate" value="@ToVal" />
+                                        <button type="submit" class="btn btn-sm @(row.IsLikelyBuildPc ? "btn-primary" : "btn-outline-info") w-100">
+                                            Xuất kho / Chuyển Kỹ thuật
+                                        </button>
+                                    </form>
+                                }
+                                @if (can.Contains(OrderWorkflowActions.Pack))
+                                {
+                                    <form asp-action="ApplyOrderAction" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="action" value="@OrderWorkflowActions.Pack" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <input type="hidden" name="fromDate" value="@FromVal" />
+                                        <input type="hidden" name="toDate" value="@ToVal" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Đóng gói</button>
+                                    </form>
+                                }
+                                @if (row.StatusCode is OrderStatusCatalog.Approved or OrderStatusCatalog.Packed)
+                                {
+                                    <a class="btn btn-sm btn-outline-primary w-100"
+                                       asp-action="Packing" asp-route-keyword="@row.OrderId">
+                                        Tạo vận đơn / Giao hàng
+                                    </a>
+                                }
+
+                                @* —— Pipeline kỹ thuật: Sales chỉ xem —— *@
+                                @if (row.StatusCode is OrderStatusCatalog.Exported or OrderStatusCatalog.Assembling)
+                                {
+                                    <div class="small text-muted border rounded p-2">
+                                        Đang ở giai đoạn kỹ thuật.
+                                        @if (row.StatusCode == OrderStatusCatalog.Assembling)
+                                        {
+                                            <span>Chỉ Kỹ thuật viên thao tác (Báo lỗi DOA / Hoàn tất ráp).</span>
+                                        }
+                                        <a class="d-block mt-1" asp-controller="Technical" asp-action="Index">Mở Dashboard Kỹ thuật →</a>
+                                    </div>
+                                }
+
+                                @* —— Sẵn sàng giao —— *@
+                                @if (row.StatusCode == OrderStatusCatalog.ReadyToDeliver)
+                                {
+                                    <a class="btn btn-sm btn-primary w-100"
+                                       asp-action="Packing" asp-route-keyword="@row.OrderId">
+                                        Tạo vận đơn / Giao hàng
+                                    </a>
+                                }
+
+                                @* —— Đang giao —— *@
+                                @if (can.Contains(OrderWorkflowActions.DeliverSuccess))
+                                {
+                                    <form asp-action="ApplyOrderAction" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="action" value="@OrderWorkflowActions.DeliverSuccess" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <input type="hidden" name="fromDate" value="@FromVal" />
+                                        <input type="hidden" name="toDate" value="@ToVal" />
+                                        <button type="submit" class="btn btn-sm btn-success w-100">Giao thành công</button>
+                                    </form>
+                                }
+                                @if (can.Contains(OrderWorkflowActions.DeliverFailed))
+                                {
+                                    <form asp-action="ApplyOrderAction" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="action" value="@OrderWorkflowActions.DeliverFailed" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <input type="hidden" name="fromDate" value="@FromVal" />
+                                        <input type="hidden" name="toDate" value="@ToVal" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100"
+                                                onclick="return confirm('Giao thất bại sẽ hoàn kho. Tiếp tục?');">
+                                            Giao thất bại
+                                        </button>
+                                    </form>
+                                }
+                                @if (can.Contains(OrderWorkflowActions.DeliverUnpaid))
+                                {
+                                    <form asp-action="ApplyOrderAction" method="post" class="d-flex gap-1">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="action" value="@OrderWorkflowActions.DeliverUnpaid" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <input type="hidden" name="fromDate" value="@FromVal" />
+                                        <input type="hidden" name="toDate" value="@ToVal" />
+                                        <input type="number" min="0" step="1000" name="depositAmountVnd"
+                                               class="form-control form-control-sm" placeholder="Ký quỹ (đ)" />
+                                        <button type="submit" class="btn btn-sm btn-warning text-nowrap">Chưa thu</button>
+                                    </form>
+                                }
+
+                                @* —— Công nợ —— *@
+                                @if (can.Contains(OrderWorkflowActions.CollectDebt))
+                                {
+                                    <form asp-action="ApplyOrderAction" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="action" value="@OrderWorkflowActions.CollectDebt" />
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <input type="hidden" name="fromDate" value="@FromVal" />
+                                        <input type="hidden" name="toDate" value="@ToVal" />
+                                        <button type="submit" class="btn btn-sm btn-danger w-100"
+                                                onclick="return confirm('Xác nhận đã thu đủ công nợ đơn #@row.OrderId?');">
+                                            Thu công nợ
+                                        </button>
+                                    </form>
+                                }
+
+                                @if (can.Count == 0
+                                     && row.StatusCode is not OrderStatusCatalog.Exported
+                                     and not OrderStatusCatalog.Assembling
+                                     and not OrderStatusCatalog.ReadyToDeliver
+                                     and not OrderStatusCatalog.Approved
+                                     and not OrderStatusCatalog.Packed)
+                                {
+                                    <span class="small text-muted">Không có thao tác tiếp theo.</span>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

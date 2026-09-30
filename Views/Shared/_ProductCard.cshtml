@@ -1,0 +1,46 @@
+@model ban_link_kien_PC.Models.HomeProductCardVm
+@{
+    var slug = string.IsNullOrEmpty(Model.Slug) ? SeoSlug.From(Model.Name) : Model.Slug;
+}
+<article class="ta-product-card @(Model.IsSoldOut ? "is-sold-out" : "")">
+    <div class="ta-product-thumb">
+        @if (Model.IsSoldOut && Model.IsHot)
+        {
+            <span class="ta-product-badge ta-badge-soldout">Cháy hàng</span>
+        }
+        else if (Model.IsHot)
+        {
+            <span class="ta-product-badge ta-badge-hot">Hot</span>
+        }
+        else if (Model.BestSeller)
+        {
+            <span class="ta-product-badge">Bán chạy</span>
+        }
+        <a asp-route="ProductDetail" asp-route-slug="@slug" asp-route-id="@Model.ComponentId">
+            <img class="ta-product-img" src="@Model.ImageUrl" alt="@Model.Name" loading="lazy" />
+        </a>
+    </div>
+    <div class="ta-product-body">
+        <div class="ta-product-name">
+            <a asp-route="ProductDetail" asp-route-slug="@slug" asp-route-id="@Model.ComponentId">@Model.Name</a>
+        </div>
+        <div class="ta-product-price">
+            @Model.Price
+            @if (Model.IsSoldOut && Model.IsHot)
+            {
+                <span class="ta-soldout-label">Cháy hàng</span>
+            }
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.Specs))
+        {
+            <div class="ta-product-specs">@Model.Specs</div>
+        }
+        <div class="ta-product-actions">
+            <a class="ta-product-action-btn" asp-route="ProductDetail" asp-route-slug="@slug" asp-route-id="@Model.ComponentId" title="Xem chi tiết"><i class="bi bi-eye"></i></a>
+            @if (!Model.IsSoldOut)
+            {
+                <a class="ta-product-action-btn" asp-controller="Cart" asp-action="Index" title="Giỏ hàng"><i class="bi bi-cart-plus"></i></a>
+            }
+        </div>
+    </div>
+</article>

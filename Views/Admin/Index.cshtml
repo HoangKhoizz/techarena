@@ -1,0 +1,269 @@
+@model ban_link_kien_PC.Controllers.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Admin Dashboard</h2>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-sm btn-outline-primary" asp-action="Revenue">Thống kê doanh thu</a>
+            <a class="btn btn-sm btn-outline-primary" asp-action="Products">Quản lý sản phẩm</a>
+            <a class="btn btn-sm btn-outline-primary" asp-action="Orders">Quản lý đơn hàng</a>
+            <a class="btn btn-sm btn-outline-primary" asp-action="Inventory">Quản lý tồn kho</a>
+            <a class="btn btn-sm btn-outline-primary" asp-action="Waitlist">Đăng ký theo dõi</a>
+            <a class="btn btn-sm btn-outline-primary" asp-controller="Customers" asp-action="Index">Quản lý khách hàng</a>
+            <a class="btn btn-sm btn-outline-primary" asp-controller="Staff" asp-action="Index">Quản lý nhân viên</a>
+        </div>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h5 class="mb-0">Doanh thu (đơn PAID / COMPLETED)</h5>
+        <button type="button" class="btn btn-sm btn-success" id="btnExportExcel">
+            <i class="bi bi-file-earmark-excel"></i> Xuất Excel Doanh Thu
+        </button>
+    </div>
+    <div class="row g-3 mb-3" id="revenueSummaryCards">
+        <div class="col-md-4">
+            <div class="card page-card">
+                <div class="card-body">
+                    <div class="text-muted small">Doanh thu hôm nay</div>
+                    <div class="h4 mb-0" id="revToday">…</div>
+                    <div class="small text-muted" id="revTodayCount"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card page-card">
+                <div class="card-body">
+                    <div class="text-muted small">Doanh thu 7 ngày</div>
+                    <div class="h4 mb-0" id="revWeek">…</div>
+                    <div class="small text-muted" id="revWeekCount"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card page-card">
+                <div class="card-body">
+                    <div class="text-muted small">Doanh thu tháng này</div>
+                    <div class="h4 mb-0" id="revMonth">…</div>
+                    <div class="small text-muted" id="revMonthCount"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card page-card mb-3">
+        <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+            <span>Biểu đồ doanh thu 30 ngày</span>
+            <span class="small text-muted" id="chartAsOf"></span>
+        </div>
+        <div class="card-body">
+            <canvas id="revenueChart" height="100" aria-label="Biểu đồ doanh thu 30 ngày"></canvas>
+            <p class="text-muted small mb-0 mt-2" id="chartEmpty" hidden>Chưa có đơn PAID/COMPLETED trong 30 ngày.</p>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <a class="card page-card dashboard-stat-card text-decoration-none" asp-action="Products">
+                <div class="card-body">
+                    <div class="text-muted small">Tổng sản phẩm</div>
+                    <div class="h4 mb-0 text-body">@Model.TotalProducts</div>
+                    <div class="dashboard-stat-hint">Xem danh sách sản phẩm →</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a class="card page-card dashboard-stat-card text-decoration-none" asp-action="Products" asp-route-status="ACTIVE">
+                <div class="card-body">
+                    <div class="text-muted small">Đang kinh doanh</div>
+                    <div class="h4 mb-0 text-body">@Model.ActiveProducts</div>
+                    <div class="dashboard-stat-hint">Sản phẩm đang bán →</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a class="card page-card dashboard-stat-card text-decoration-none" asp-action="Inventory" asp-route-stock="out">
+                <div class="card-body">
+                    <div class="text-muted small">Hết hàng</div>
+                    <div class="h4 mb-0 text-body">@Model.OutOfStockProducts</div>
+                    <div class="dashboard-stat-hint">Xem tồn kho = 0 →</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a class="card page-card dashboard-stat-card text-decoration-none" asp-action="Inventory" asp-route-stock="low">
+                <div class="card-body">
+                    <div class="text-muted small">Sắp hết</div>
+                    <div class="h4 mb-0 text-body">@Model.LowStockProducts</div>
+                    <div class="dashboard-stat-hint">Tồn kho thấp →</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a class="card page-card dashboard-stat-card text-decoration-none" asp-action="Waitlist">
+                <div class="card-body">
+                    <div class="text-muted small">Đăng ký theo dõi</div>
+                    <div class="h4 mb-0 text-body">@Model.WaitlistRows</div>
+                    <div class="dashboard-stat-hint">Danh sách theo dõi →</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a class="card page-card dashboard-stat-card text-decoration-none" asp-action="Orders">
+                <div class="card-body">
+                    <div class="text-muted small">Tổng đơn hàng</div>
+                    <div class="h4 mb-0 text-body">@Model.TotalOrders</div>
+                    <div class="dashboard-stat-hint">Quản lý đơn hàng →</div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card page-card">
+        <div class="card-header fw-semibold">Phân bố trạng thái đơn</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Số lượng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.OrderStatusRows.Count == 0)
+                    {
+                        <tr><td colspan="2" class="text-muted">Chưa có đơn hàng.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in Model.OrderStatusRows)
+                        {
+                            <tr>
+                                <td>@row.StatusName</td>
+                                <td class="text-end">@row.Count</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(() => {
+  const money = (n) => new Intl.NumberFormat('vi-VN', {
+    style: 'currency', currency: 'VND', maximumFractionDigits: 0
+  }).format(n || 0);
+
+  async function loadSummary() {
+    const res = await fetch('/api/dashboard/revenue-summary');
+    if (!res.ok) throw new Error('Không tải được doanh thu');
+    const d = await res.json();
+    document.getElementById('revToday').textContent = money(d.todayRevenue);
+    document.getElementById('revWeek').textContent = money(d.weekRevenue);
+    document.getElementById('revMonth').textContent = money(d.monthRevenue);
+    document.getElementById('revTodayCount').textContent = `${d.todayOrderCount} đơn`;
+    document.getElementById('revWeekCount').textContent = `${d.weekOrderCount} đơn`;
+    document.getElementById('revMonthCount').textContent = `${d.monthOrderCount} đơn`;
+    document.getElementById('chartAsOf').textContent = d.asOfLocal ? `Cập nhật: ${d.asOfLocal}` : '';
+  }
+
+  async function loadChart() {
+    const res = await fetch('/api/dashboard/revenue-last-30-days');
+    if (!res.ok) throw new Error('Không tải được biểu đồ');
+    const d = await res.json();
+    const days = d.days || [];
+    const hasData = days.some(x => (x.revenue || 0) > 0);
+    document.getElementById('chartEmpty').hidden = hasData;
+
+    const ctx = document.getElementById('revenueChart');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: days.map(x => x.label),
+        datasets: [{
+          label: 'Doanh thu (₫)',
+          data: days.map(x => x.revenue || 0),
+          borderColor: '#22d3ee',
+          backgroundColor: 'rgba(34, 211, 238, 0.15)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { labels: { color: '#94a3b8' } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => money(ctx.parsed.y)
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#94a3b8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+            grid: { color: 'rgba(148,163,184,0.12)' }
+          },
+          y: {
+            ticks: {
+              color: '#94a3b8',
+              callback: (v) => new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(v)
+            },
+            grid: { color: 'rgba(148,163,184,0.12)' }
+          }
+        }
+      }
+    });
+  }
+
+  document.getElementById('btnExportExcel').addEventListener('click', async () => {
+    const btn = document.getElementById('btnExportExcel');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/dashboard/export-excel');
+      if (!res.ok) throw new Error('Xuất Excel thất bại');
+      const blob = await res.blob();
+      const disp = res.headers.get('Content-Disposition') || '';
+      const match = /filename\*?=(?:UTF-8'')?["']?([^"';]+)/i.exec(disp);
+      const fileName = match ? decodeURIComponent(match[1]) : `DoanhThu_${Date.now()}.xlsx`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.replace(/;/g, '').trim();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(e.message || 'Không xuất được file Excel');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  Promise.all([loadSummary(), loadChart()]).catch(err => {
+    console.error(err);
+    document.getElementById('revToday').textContent = '—';
+    document.getElementById('revWeek').textContent = '—';
+    document.getElementById('revMonth').textContent = '—';
+  });
+})();
+</script>
+}

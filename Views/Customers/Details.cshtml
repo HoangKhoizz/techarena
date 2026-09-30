@@ -1,0 +1,140 @@
+@model ban_link_kien_PC.Controllers.CustomerDetailsViewModel
+@{
+    ViewData["Title"] = $"Khách hàng · {Model.FullName}";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell staff-admin">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-1">@Model.FullName</h2>
+            <p class="text-muted mb-0 small">Chi tiết khách hàng #@Model.CustomerId (bảng Customer)</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@Model.CustomerId">Sửa thông tin</a>
+            <form asp-action="ResetPassword" method="post" class="d-inline"
+                  onsubmit="return confirm('Reset mật khẩu về TechArena@123 cho khách này?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.CustomerId" />
+                <button type="submit" class="btn btn-warning">Reset mật khẩu</button>
+            </form>
+            <form asp-action="ToggleActive" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.CustomerId" />
+                <button type="submit" class="btn @(Model.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                    @(Model.IsActive ? "Khóa tài khoản" : "Mở khóa")
+                </button>
+            </form>
+            <a class="btn btn-outline-secondary" asp-action="Index">← Danh sách</a>
+        </div>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info)
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="card page-card h-100">
+                <div class="card-header fw-semibold">Thông tin liên hệ</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-muted">Username</dt>
+                        <dd class="col-sm-8"><code>@Model.Username</code></dd>
+                        <dt class="col-sm-4 text-muted">Email</dt>
+                        <dd class="col-sm-8">@Model.Email</dd>
+                        <dt class="col-sm-4 text-muted">Số điện thoại</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Phone) ? "—" : Model.Phone)</dd>
+                        <dt class="col-sm-4 text-muted">Ngày sinh</dt>
+                        <dd class="col-sm-8">@(Model.DateOfBirth?.ToString("dd/MM/yyyy") ?? "—")</dd>
+                        <dt class="col-sm-4 text-muted">Địa chỉ 1</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.ShippingAddress1) ? "—" : Model.ShippingAddress1)</dd>
+                        <dt class="col-sm-4 text-muted">Địa chỉ 2</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.ShippingAddress2) ? "—" : Model.ShippingAddress2)</dd>
+                        <dt class="col-sm-4 text-muted">Ngân hàng</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.BankAccountInfo) ? "—" : Model.BankAccountInfo)</dd>
+                        <dt class="col-sm-4 text-muted">Điểm / Hạng</dt>
+                        <dd class="col-sm-8">
+                            <strong>@Model.LoyaltyPoints</strong> điểm —
+                            <span class="badge text-bg-primary">@Model.MembershipTierDisplay</span>
+                        </dd>
+                        <dt class="col-sm-4 text-muted">Trạng thái</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge text-bg-success">Hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-secondary">Khóa</span>
+                            }
+                        </dd>
+                        <dt class="col-sm-4 text-muted">Ngày đăng ký</dt>
+                        <dd class="col-sm-8 mb-0">@Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card page-card h-100">
+                <div class="card-header fw-semibold">Tóm tắt mua hàng</div>
+                <div class="card-body">
+                    <div class="h3 mb-1">@Model.Orders.Count</div>
+                    <div class="text-muted small mb-2">Đơn hàng (Online + POS)</div>
+                    <div class="h5 mb-0">@Model.Orders.Sum(x => x.TotalPriceVnd).ToString("N0") ₫</div>
+                    <div class="text-muted small">Tổng chi tiêu</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card page-card">
+        <div class="card-header fw-semibold">Lịch sử mua hàng</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 staff-table">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Ngày mua</th>
+                            <th>Loại đơn</th>
+                            <th class="text-end">Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th>Thanh toán</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Orders.Count == 0)
+                    {
+                        <tr><td colspan="6" class="text-muted text-center py-4">Chưa có đơn hàng.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var o in Model.Orders)
+                        {
+                            <tr>
+                                <td>#@o.OrderId</td>
+                                <td>@o.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (o.OrderTypeDisplay == "POS")
+                                    {
+                                        <span class="badge text-bg-warning">POS</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-primary">Online</span>
+                                    }
+                                </td>
+                                <td class="text-end fw-semibold">@o.TotalPriceVnd.ToString("N0") ₫</td>
+                                <td><span class="badge @o.StatusBadgeClass">@o.StatusDisplay</span></td>
+                                <td>@o.PaymentMethodCode</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,128 @@
+@using System
+@model ban_link_kien_PC.Controllers.AdminProductsViewModel
+@{
+    ViewData["Title"] = "Quản lý sản phẩm";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Quản lý sản phẩm (CRUD)</h2>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-secondary" asp-action="Index">Dashboard</a>
+            <a class="btn btn-sm btn-primary" asp-action="ProductCreate">Thêm sản phẩm</a>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a class="btn btn-sm @(string.IsNullOrWhiteSpace(Model.Group) && string.IsNullOrWhiteSpace(Model.CategoryCode) ? "btn-dark" : "btn-outline-dark")"
+           asp-action="Products">Tất cả (@Model.TotalCount)</a>
+        <a class="btn btn-sm @(string.Equals(Model.Group, "COMPONENT", StringComparison.OrdinalIgnoreCase) ? "btn-dark" : "btn-outline-dark")"
+           asp-action="Products" asp-route-group="COMPONENT">Linh kiện (@Model.ComponentCount)</a>
+        <a class="btn btn-sm @(string.Equals(Model.Group, "PREBUILT", StringComparison.OrdinalIgnoreCase) ? "btn-dark" : "btn-outline-dark")"
+           asp-action="Products" asp-route-group="PREBUILT">PC Build sẵn (@Model.PrebuiltCount)</a>
+        <a class="btn btn-sm @(string.Equals(Model.Group, "WORKSTATION", StringComparison.OrdinalIgnoreCase) ? "btn-dark" : "btn-outline-dark")"
+           asp-action="Products" asp-route-group="WORKSTATION">Workstation (@Model.WorkstationCount)</a>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    <form method="get" class="row g-2 mb-3">
+        <input type="hidden" name="group" value="@Model.Group" />
+        <div class="col-md-5">
+            <input name="keyword" value="@Model.Keyword" class="form-control" placeholder="Tìm theo tên hoặc SKU..." />
+        </div>
+        <div class="col-md-4">
+            <select name="categoryCode" class="form-select">
+                <option value="">-- Lọc theo danh mục cụ thể --</option>
+                @foreach (var opt in Model.CategoryOptions)
+                {
+                    if (string.Equals(Model.CategoryCode, opt.Value, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@opt.Value" selected>@opt.Text</option>
+                    }
+                    else
+                    {
+                        <option value="@opt.Value">@opt.Text</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" type="submit">Tìm</button>
+        </div>
+        <div class="col-auto">
+            <a class="btn btn-outline-secondary" asp-action="Products">Reset</a>
+        </div>
+    </form>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        @foreach (var c in Model.CategoryCounts)
+        {
+            <span class="badge rounded-pill text-bg-light border">@c.CategoryName: @c.Count</span>
+        }
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Danh mục</th>
+                    <th class="text-end">Giá</th>
+                    <th class="text-center">Tồn</th>
+                    <th class="text-center">Kích hoạt</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="6" class="text-muted">Không có sản phẩm.</td></tr>
+            }
+            else
+            {
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <img src="@row.ImageUrl" alt="@row.Name" style="width:54px;height:54px;object-fit:contain;border:1px solid #e7ebf2;border-radius:8px;background:#fff;" />
+                                <div>
+                                    <div class="fw-semibold">@row.Name</div>
+                                    <div class="small text-muted">@row.Sku</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>@row.CategoryName</td>
+                        <td class="text-end">@row.PriceVnd.ToString("N0") đ</td>
+                        <td class="text-center">@row.StockQty</td>
+                        <td class="text-center">
+                            @if (row.IsActive)
+                            {
+                                <span class="badge text-bg-success">ON</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-secondary">OFF</span>
+                            }
+                        </td>
+                        <td class="text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" asp-action="ProductEdit" asp-route-id="@row.ComponentId">Sửa</a>
+                            <form asp-action="ProductDelete" method="post" class="d-inline" onsubmit="return confirm('Xóa sản phẩm này?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@row.ComponentId" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+

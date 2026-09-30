@@ -1,0 +1,71 @@
+@model ban_link_kien_PC.Controllers.CskhWarrantiesPageVm
+@{
+    ViewData["Title"] = "Bảo hành";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell staff-admin">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Yêu cầu bảo hành</h2>
+        <div class="btn-group btn-group-sm">
+            <a class="btn @(Model.StatusFilter=="PENDING"?"btn-primary":"btn-outline-primary")" asp-action="Warranties" asp-route-status="PENDING">Chờ xử lý</a>
+            <a class="btn @(Model.StatusFilter=="APPROVED"?"btn-primary":"btn-outline-primary")" asp-action="Warranties" asp-route-status="APPROVED">Đã duyệt</a>
+            <a class="btn @(Model.StatusFilter=="REJECTED"?"btn-primary":"btn-outline-primary")" asp-action="Warranties" asp-route-status="REJECTED">Từ chối</a>
+            <a class="btn @(Model.StatusFilter=="COMPLETED"?"btn-primary":"btn-outline-primary")" asp-action="Warranties" asp-route-status="COMPLETED">Hoàn tất</a>
+            <a class="btn @(Model.StatusFilter=="ALL"?"btn-primary":"btn-outline-primary")" asp-action="Warranties" asp-route-status="ALL">Tất cả</a>
+        </div>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info)
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="alert alert-info">Không có yêu cầu.</div>
+    }
+    else
+    {
+        @foreach (var r in Model.Rows)
+        {
+            <div class="card page-card mb-3">
+                <div class="card-header d-flex justify-content-between flex-wrap gap-2">
+                    <div>
+                        <strong>#@r.WarrantyClaimId</strong> · Đơn #@r.OrderId · @r.ProductName
+                        <span class="small text-muted">(@r.Sku)</span>
+                    </div>
+                    <span class="badge @r.StatusBadgeClass">@r.StatusDisplay</span>
+                </div>
+                <div class="card-body">
+                    <div class="small text-muted mb-1">@r.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · Serial: @(r.SerialNumber ?? "—")</div>
+                    <p class="mb-3">@r.IssueDescription</p>
+                    @if (!string.IsNullOrWhiteSpace(r.AdminNote))
+                    {
+                        <div class="alert alert-light border small mb-3">Ghi chú: @r.AdminNote</div>
+                    }
+                    <form asp-action="UpdateWarranty" method="post" class="row g-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@r.WarrantyClaimId" />
+                        <div class="col-md-3">
+                            <label class="form-label small">Trạng thái</label>
+                            <select name="status" class="form-select form-select-sm">
+                                @if (r.Status == "PENDING") { <option value="PENDING" selected>Chờ xử lý</option> } else { <option value="PENDING">Chờ xử lý</option> }
+                                @if (r.Status == "APPROVED") { <option value="APPROVED" selected>Đã duyệt</option> } else { <option value="APPROVED">Đã duyệt</option> }
+                                @if (r.Status == "REJECTED") { <option value="REJECTED" selected>Từ chối</option> } else { <option value="REJECTED">Từ chối</option> }
+                                @if (r.Status == "COMPLETED") { <option value="COMPLETED" selected>Hoàn tất</option> } else { <option value="COMPLETED">Hoàn tất</option> }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Ghi chú admin</label>
+                            <input name="adminNote" class="form-control form-control-sm" value="@r.AdminNote" placeholder="Ghi chú xử lý…" />
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-sm btn-primary">Cập nhật</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    }
+</div>

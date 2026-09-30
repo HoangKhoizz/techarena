@@ -1,0 +1,83 @@
+@model ban_link_kien_PC.Controllers.OrderLookupPageViewModel
+@{
+    ViewData["Title"] = "Theo dõi đơn hàng";
+}
+
+<div class="ta-container py-4">
+    <div class="page-shell">
+        <div class="page-head mb-3">
+            <h2 class="page-title mb-1">Theo dõi đơn hàng</h2>
+            <p class="text-muted mb-0">Nhập <strong>mã đơn</strong> và/hoặc <strong>số điện thoại</strong> đã dùng khi đặt hàng (không bắt buộc đăng nhập).</p>
+        </div>
+
+        @if (TempData["LookupError"] is string te)
+        {
+            <div class="alert alert-warning py-2">@te</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <div class="alert alert-warning py-2">@Model.Error</div>
+        }
+
+        <div class="card page-card mb-3">
+            <div class="card-body">
+                <form method="post" class="row g-2 align-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-3">
+                        <label class="form-label">Mã đơn hàng</label>
+                        <input name="OrderId" value="@(Model.OrderId?.ToString() ?? "")" class="form-control" placeholder="VD: 1024" inputmode="numeric" />
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Số điện thoại</label>
+                        <input name="Phone" value="@Model.Phone" class="form-control" placeholder="09…" inputmode="tel" />
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Theo dõi</button>
+                    </div>
+                </form>
+                <p class="small text-muted mb-0 mt-2">Gợi ý: tra bằng mã đơn + SĐT để vào thẳng chi tiết; chỉ SĐT để xem lịch sử mua hàng.</p>
+            </div>
+        </div>
+
+        @if (Model.Orders.Count > 0)
+        {
+            <div class="card page-card">
+                <div class="card-header fw-semibold">Kết quả (@Model.Orders.Count)</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mã đơn</th>
+                                    <th>Ngày</th>
+                                    <th>Người nhận</th>
+                                    <th>Loại</th>
+                                    <th class="text-end">Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var o in Model.Orders)
+                            {
+                                <tr>
+                                    <td>#@o.OrderId</td>
+                                    <td>@o.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@o.ReceiverName</td>
+                                    <td>@(o.OrderType == "POS" ? "POS" : "Online")</td>
+                                    <td class="text-end">@o.TotalPriceVnd.ToString("N0") ₫</td>
+                                    <td><span class="badge @o.StatusBadgeClass">@o.StatusDisplay</span></td>
+                                    <td>
+                                        <a class="btn btn-sm btn-outline-primary"
+                                           asp-action="Details" asp-route-id="@o.OrderId" asp-route-phone="@Model.Phone">Chi tiết</a>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

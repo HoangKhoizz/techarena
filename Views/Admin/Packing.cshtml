@@ -1,0 +1,193 @@
+@using System
+@using ban_link_kien_PC.Domain.Orders
+@using ban_link_kien_PC.Domain.Shipping
+@model ban_link_kien_PC.Controllers.AdminPackingViewModel
+@{
+    ViewData["Title"] = "Quản lý đóng gói";
+    Layout = "_AdminLayout";
+}
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-0">Quản lý đóng gói</h2>
+            <div class="text-muted small">UC11 — Lập phiếu giao hàng (đơn Đã duyệt / Đã đóng gói)</div>
+        </div>
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Orders">Quay lại đơn hàng</a>
+    </div>
+
+    @if (TempData["AdminInfo"] is string info && !string.IsNullOrWhiteSpace(info))
+    {
+        <div class="alert alert-success py-2">@info</div>
+    }
+    @if (TempData["AdminError"] is string err && !string.IsNullOrWhiteSpace(err))
+    {
+        <div class="alert alert-danger py-2">@err</div>
+    }
+
+    <form method="get" class="row g-2 mb-3 align-items-end">
+        <div class="col-md-6">
+            <label class="form-label small mb-1">Tìm kiếm</label>
+            <input name="keyword" value="@Model.Keyword" class="form-control" placeholder="Mã đơn, người nhận, SĐT..." />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" type="submit">Lọc</button>
+            <a class="btn btn-outline-secondary" asp-action="Packing">Reset</a>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Người nhận</th>
+                    <th>Thanh toán / COD</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Tổng tiền</th>
+                    <th style="min-width:260px">Xử lý</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="6" class="text-muted">Không có đơn cần đóng gói / tạo vận đơn.</td></tr>
+            }
+            else
+            {
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">#@row.OrderId</div>
+                            <div class="small text-muted">@row.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@row.ReceiverName</div>
+                            <div class="small text-muted">@row.ReceiverPhone</div>
+                            <div class="small text-muted">@row.ShippingAddress</div>
+                        </td>
+                        <td>
+                            <div>@row.PaymentMethodCode</div>
+                            <div class="small">Thu hộ (COD): <strong>@row.CodAmountVnd.ToString("N0") đ</strong></div>
+                        </td>
+                        <td><span class="badge @row.StatusBadgeClass">@row.StatusDisplay</span></td>
+                        <td class="text-end">@row.TotalPriceVnd.ToString("N0") đ</td>
+                        <td>
+                            <div class="d-flex flex-column gap-2">
+                                @if (row.StatusCode == OrderStatusCatalog.Approved)
+                                {
+                                    <form asp-action="MarkPacked" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Đánh dấu đã đóng gói</button>
+                                    </form>
+                                }
+
+                                @if (row.StatusCode is OrderStatusCatalog.Approved or OrderStatusCatalog.Packed
+                                    or OrderStatusCatalog.IssueDoa or OrderStatusCatalog.IssueCaseMismatch)
+                                {
+                                    <form asp-action="MarkExported" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@row.OrderId" />
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <button type="submit" class="btn btn-sm btn-outline-info w-100">Xuất kho → Kỹ thuật</button>
+                                    </form>
+                                }
+
+                                @if (row.StatusCode is OrderStatusCatalog.Approved or OrderStatusCatalog.Packed
+                                    or OrderStatusCatalog.ReadyToDeliver)
+                                {
+                                    <button type="button"
+                                            class="btn btn-sm btn-primary w-100 btn-create-shipment"
+                                            data-order-id="@row.OrderId"
+                                            data-receiver="@row.ReceiverName"
+                                            data-cod="@row.CodAmountVnd.ToString("N0")">
+                                        Tạo vận đơn
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal tạo vận đơn -->
+<div class="modal fade" id="shipmentModal" tabindex="-1" aria-labelledby="shipmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form asp-action="CreateShipment" method="post" class="modal-content" id="shipmentForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="orderId" id="shipOrderId" />
+            <input type="hidden" name="keyword" value="@Model.Keyword" />
+            <div class="modal-header">
+                <h5 class="modal-title" id="shipmentModalLabel">Tạo vận đơn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2 small text-muted" id="shipOrderMeta"></p>
+                <div class="mb-3">
+                    <label class="form-label" for="providerCode">Đơn vị vận chuyển</label>
+                    <select class="form-select" name="providerCode" id="providerCode" required>
+                        <option value="">— Chọn đơn vị —</option>
+                        @foreach (var p in Model.ProviderOptions)
+                        {
+                            <option value="@p.Value">@p.Text</option>
+                        }
+                    </select>
+                    <div class="form-text">GHTK / Viettel Post: gọi API giả lập (có thể lỗi ~10%). Giao hỏa tốc: shipper cửa hàng.</div>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label" for="staffId">Nhân viên giao (tuỳ chọn)</label>
+                    <select class="form-select" name="staffId" id="staffId">
+                        <option value="">— Không chọn —</option>
+                        @foreach (var s in Model.StaffOptions)
+                        {
+                            <option value="@s.Value">@s.Text</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Huỷ</button>
+                <button type="submit" class="btn btn-primary" id="btnSubmitShipment">Xác nhận tạo vận đơn</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var modalEl = document.getElementById('shipmentModal');
+    if (!modalEl || typeof bootstrap === 'undefined') return;
+    var modal = new bootstrap.Modal(modalEl);
+    var orderIdInput = document.getElementById('shipOrderId');
+    var meta = document.getElementById('shipOrderMeta');
+    var form = document.getElementById('shipmentForm');
+    var submitBtn = document.getElementById('btnSubmitShipment');
+
+    document.querySelectorAll('.btn-create-shipment').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-order-id');
+            var receiver = btn.getAttribute('data-receiver') || '';
+            var cod = btn.getAttribute('data-cod') || '0';
+            orderIdInput.value = id;
+            meta.textContent = 'Đơn #' + id + ' — ' + receiver + ' — COD: ' + cod + ' đ';
+            modal.show();
+        });
+    });
+
+    if (form && submitBtn) {
+        form.addEventListener('submit', function () {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Đang gọi API...';
+        });
+    }
+})();
+</script>
+}

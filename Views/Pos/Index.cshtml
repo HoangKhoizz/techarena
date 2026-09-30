@@ -1,0 +1,126 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "POS Quầy bán hàng";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — Tech Arena</title>
+    <link rel="icon" type="image/svg+xml" href="~/images/logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/pos.css" asp-append-version="true" />
+</head>
+<body class="pos-body">
+    <div class="pos-app" id="posApp">
+        <header class="pos-topbar">
+            <div class="pos-brand">
+                <img src="~/images/logo.svg" alt="Tech Arena" />
+                <div>
+                    <strong>TECH ARENA</strong>
+                    <span>POS · Quầy linh kiện</span>
+                </div>
+            </div>
+            <div class="pos-session" id="posSession">
+                <span class="pos-session-pill" id="sessionLabel">…</span>
+                <button type="button" class="pos-btn ghost" id="btnLogout">Đóng ca</button>
+            </div>
+        </header>
+
+        <section class="pos-workspace" id="posWorkspace">
+            <main class="pos-main">
+                <div class="pos-search-row">
+                    <div class="pos-search">
+                        <i class="bi bi-search"></i>
+                        <input type="search" id="productSearch" placeholder="Tìm SKU, tên linh kiện, brand…" autofocus />
+                    </div>
+                    <button type="button" class="pos-btn ghost" id="btnRefresh">Làm mới</button>
+                </div>
+                <div class="pos-grid" id="productGrid" aria-live="polite"></div>
+                <p class="pos-empty" id="productEmpty" hidden>Không tìm thấy sản phẩm phù hợp.</p>
+            </main>
+
+            <aside class="pos-cart">
+                <div class="pos-cart-head">
+                    <h2>Giỏ tạm</h2>
+                    <button type="button" class="pos-btn ghost sm" id="btnClearCart">Xóa</button>
+                </div>
+                <div class="pos-cart-list" id="cartList"></div>
+                <div class="pos-cart-foot">
+                    <div class="pos-total-row">
+                        <span>Tổng cộng</span>
+                        <strong id="cartTotal">0 ₫</strong>
+                    </div>
+                    <label class="pos-money">
+                        Tên khách hàng
+                        <input type="text" id="receiverName" placeholder="Khách tại quầy" maxlength="200" />
+                    </label>
+                    <label class="pos-money">
+                        SĐT khách
+                        <input type="text" id="receiverPhone" placeholder="09…" inputmode="tel" maxlength="20" />
+                        <span class="pos-field-hint" id="phoneHint" hidden></span>
+                    </label>
+                    <label class="pos-money">
+                        Tiền khách đưa
+                        <input type="text" id="amountPaid" inputmode="numeric" placeholder="0" autocomplete="off" />
+                    </label>
+                    <div class="pos-total-row change">
+                        <span>Tiền thối</span>
+                        <strong id="changeDue">0 ₫</strong>
+                    </div>
+                    <button type="button" class="pos-btn pay" id="btnPay" disabled>
+                        <i class="bi bi-lightning-charge-fill"></i>
+                        Thanh toán &amp; In HĐ
+                    </button>
+                    <p class="pos-error" id="payError" hidden></p>
+                    <p class="pos-ok" id="payOk" hidden></p>
+                </div>
+            </aside>
+        </section>
+    </div>
+
+    @* Template hóa đơn — chỉ hiện khi print *@
+    <div id="posReceipt" class="pos-receipt" aria-hidden="true">
+        <div class="receipt-inner">
+            <div class="receipt-brand">
+                <img src="~/images/logo.svg" alt="Tech Arena" />
+                <div>
+                    <strong>TECH ARENA</strong>
+                    <div>Cửa hàng linh kiện PC</div>
+                </div>
+            </div>
+            <div class="receipt-title">HÓA ĐƠN BÁN HÀNG</div>
+            <div class="receipt-meta">
+                <div>Mã HĐ: <span id="rcOrderId">—</span></div>
+                <div>Ngày: <span id="rcDate">—</span></div>
+                <div>Thu ngân: <span id="rcCashier">—</span></div>
+                <div>Khách: <span id="rcCustomer">—</span></div>
+                <div>SĐT: <span id="rcPhone">—</span></div>
+            </div>
+            <table class="receipt-table">
+                <thead>
+                    <tr>
+                        <th>Sản phẩm</th>
+                        <th class="num">SL</th>
+                        <th class="num">Đ.giá</th>
+                        <th class="num">TT</th>
+                    </tr>
+                </thead>
+                <tbody id="rcItems"></tbody>
+            </table>
+            <div class="receipt-totals">
+                <div><span>Tổng cộng</span><strong id="rcTotal">0</strong></div>
+                <div><span>Khách đưa</span><strong id="rcPaid">0</strong></div>
+                <div><span>Tiền thối</span><strong id="rcChange">0</strong></div>
+            </div>
+            <p class="receipt-thanks">Cảm ơn quý khách!</p>
+        </div>
+    </div>
+
+    <script src="~/js/pos.js" asp-append-version="true"></script>
+</body>
+</html>
